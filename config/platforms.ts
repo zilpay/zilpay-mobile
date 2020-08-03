@@ -1,4 +1,4 @@
 export enum OS {
-  ios = 'ios',
-  android = 'android'
+  IOS = 'ios',
+  ANDROID = 'android'
 }
