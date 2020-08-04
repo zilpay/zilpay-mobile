@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native';
 
 import { colors } from 'src/styles';
 
-export const HomePage = () => {
+export const LockPage = () => {
 
   return (
     <View style={styles.container} />
@@ -13,6 +13,6 @@ export const HomePage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.primary
+    backgroundColor: colors.secondary
   }
 });
