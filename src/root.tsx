@@ -6,7 +6,7 @@ import { useFonts } from 'expo-font';
 import { HomePage } from 'src/pages/home';
 import { LockPage } from 'src/pages/lock';
 
-import { fontStyles } from 'src/styles';
+import { fontStyles, theme } from 'src/styles';
 
 const Stack = createStackNavigator();
 
@@ -14,7 +14,7 @@ export default function Root() {
   useFonts(fontStyles);
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={theme}>
       <Stack.Navigator headerMode="none">
         <Stack.Screen name="Home" component={HomePage} />
         <Stack.Screen name="Lock" component={LockPage} />
