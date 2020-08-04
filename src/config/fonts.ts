@@ -1,3 +1,6 @@
 export enum Fonts {
-  SF
+  Bold,
+  Light,
+  Medium,
+  Regilar
 }

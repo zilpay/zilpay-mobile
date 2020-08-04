@@ -10,6 +10,10 @@ module.exports = function(api) {
             {
               rootPathSuffix: './src',
               rootPathPrefix: 'src'
+            },
+            {
+              rootPathSuffix: './assets',
+              rootPathPrefix: 'assets'
             }
           ]
         }
