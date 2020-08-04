@@ -1,7 +1,7 @@
 
 import { Dimensions, Platform } from 'react-native';
 
-import { OS } from 'config';
+import { OS } from 'src/config';
 
 export class Device {
 	public static getDeviceWidth() {
