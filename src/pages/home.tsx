@@ -7,16 +7,24 @@
  * Copyright (c) 2020 ZilPay
  */
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Text } from 'react-native';
 // import { useTheme } from '@react-navigation/native';
 
 import { colors } from 'src/styles';
+
+// import { Encryptor } from 'src/lib/crypto';
+
+// const crypto = new Encryptor();
 
 export const HomePage = () => {
   // const { colors } = useTheme();
 
   return (
-    <View style={styles.container} />
+    <View style={styles.container}>
+      <Text>
+        Hello World!
+      </Text>
+    </View>
   );
 };
 

@@ -7,4 +7,3 @@
  * Copyright (c) 2020 ZilPay
  */
 export * from './encryptor';
-export * from './sha256';

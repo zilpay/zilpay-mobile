@@ -20,7 +20,7 @@ export type EncryptedType = {
  * This is used by the KeyringController to encrypt / decrypt the state
  * which contains sensitive seed words and addresses
  */
-export default class Encryptor {
+export class Encryptor {
   private _salt: string;
 
   constructor(salt = 'ZilPay') {
