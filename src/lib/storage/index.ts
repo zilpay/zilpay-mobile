@@ -6,7 +6,5 @@
  * -----
  * Copyright (c) 2020 ZilPay
  */
-export enum OS {
-  IOS = 'ios',
-  ANDROID = 'android'
-}
+export * from './storage';
+export * from './value-builder';
