@@ -12,17 +12,13 @@ import { View, StyleSheet, Text } from 'react-native';
 
 import { colors } from '../styles';
 
-import { Encryptor } from '../lib/crypto';
-
-const crypto = new Encryptor();
-
 export const HomePage = () => {
   // const { colors } = useTheme();
 
   return (
     <View style={styles.container}>
       <Text>
-        dsadas
+        dasdsa
       </Text>
     </View>
   );
