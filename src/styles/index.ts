@@ -2,7 +2,6 @@
  * Base styles and variables
  */
 import { DefaultTheme } from '@react-navigation/native';
-import { Fonts } from 'src/config';
 
 /**
  * Map of color names to HEX values
@@ -24,10 +23,10 @@ export const colors = {
  * Map of reusable fonts
  */
 export const fontStyles = {
-  [Fonts.Bold]: require('assets/fonts/SF-Pro-Display-Bold.otf'),
-  [Fonts.Light]: require('assets/fonts/SF-Pro-Display-Light.otf'),
-  [Fonts.Medium]: require('assets/fonts/SF-Pro-Display-Medium.otf'),
-  [Fonts.Regilar]: require('assets/fonts/SF-Pro-Display-Regular.otf')
+  // [Fonts.Bold]: require('assets/fonts/SF-Pro-Display-Bold.otf'),
+  // [Fonts.Light]: require('assets/fonts/SF-Pro-Display-Light.otf'),
+  // [Fonts.Medium]: require('assets/fonts/SF-Pro-Display-Medium.otf'),
+  // [Fonts.Regilar]: require('assets/fonts/SF-Pro-Display-Regular.otf')
 };
 
 export const theme = {
