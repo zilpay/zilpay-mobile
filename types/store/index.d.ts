@@ -6,9 +6,7 @@
  * -----
  * Copyright (c) 2020 ZilPay
  */
-export * from './platforms';
-export * from './fonts';
-export * from './app-constants';
-export * from './storage-fields';
-export * from './account-type';
-export * from './address-format';
+
+export * from './account';
+export * from './contact';
+export * from './settings';

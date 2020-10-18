@@ -2447,6 +2447,16 @@ ee-first@1.1.1:
   resolved "https://registry.yarnpkg.com/ee-first/-/ee-first-1.1.1.tgz#590c61156b0ae2f4f0255732a158b266bc56b21d"
   integrity sha1-WQxhFWsK4vTwJVcyoViyZrxWsh0=
 
+effector-react@^21.0.6:
+  version "21.0.6"
+  resolved "https://registry.yarnpkg.com/effector-react/-/effector-react-21.0.6.tgz#8af2053d10eac6a6813d2a3ea9bbd3a9cfefaf4b"
+  integrity sha512-dmIlwFG2QfNVqlhJMuol38iMEYtRrG0pDe6INaUQ7t1+Fwv9RtrCc48bp8XjG6eUs03OK0Wn2efD5rzgjboTiA==
+
+effector@^21.5.0:
+  version "21.5.0"
+  resolved "https://registry.yarnpkg.com/effector/-/effector-21.5.0.tgz#a574222f9e32a6a4157ce142dda9fafb877b3b9d"
+  integrity sha512-OCmmV0uSFjNCBCnQ/1Nwj7ogY/be6lNuQaTzOEUDo6nuskHvJ0dMSm9EloOJhBAuKZrPt3/14mGZ3afTegvvrA==
+
 emoji-regex@^7.0.1:
   version "7.0.3"
   resolved "https://registry.yarnpkg.com/emoji-regex/-/emoji-regex-7.0.3.tgz#933a04052860c85e83c122479c4748a8e4c72156"
