@@ -12,9 +12,9 @@ import { View, StyleSheet, Text } from 'react-native';
 
 import { colors } from 'src/styles';
 
-// import { Encryptor } from 'src/lib/crypto';
+import { Encryptor } from 'src/lib/crypto';
 
-// const crypto = new Encryptor();
+const crypto = new Encryptor();
 
 export const HomePage = () => {
   // const { colors } = useTheme();
@@ -22,7 +22,7 @@ export const HomePage = () => {
   return (
     <View style={styles.container}>
       <Text>
-        Hello World!
+        dsadas
       </Text>
     </View>
   );

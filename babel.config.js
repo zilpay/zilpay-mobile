@@ -1,23 +1,3 @@
-module.exports = function(api) {
-  api.cache(true);
-  return {
-    presets: ['babel-preset-expo'],
-    plugins: [
-      [
-        'babel-plugin-root-import',
-        {
-          paths: [
-            {
-              rootPathSuffix: './src',
-              rootPathPrefix: 'src'
-            },
-            {
-              rootPathSuffix: './assets',
-              rootPathPrefix: 'assets'
-            }
-          ]
-        }
-      ]
-    ]
-  };
+module.exports = {
+  presets: ['module:metro-react-native-babel-preset'],
 };

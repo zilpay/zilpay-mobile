@@ -1,0 +1,6 @@
+module Pods_zilpayMobile_zilpayMobileTests {
+  umbrella header "Pods-zilpayMobile-zilpayMobileTests-umbrella.h"
+
+  export *
+  module * { export * }
+}
