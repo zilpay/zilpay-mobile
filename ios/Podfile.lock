@@ -310,6 +310,7 @@ PODS:
     - React
   - RNScreens (2.11.0):
     - React
+  - TrezorCrypto (0.0.9)
   - Yoga (1.14.0)
   - YogaKit (1.18.1):
     - Yoga (~> 1.14)
@@ -368,6 +369,7 @@ DEPENDENCIES:
   - RNFS (from `../node_modules/react-native-fs`)
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - RNScreens (from `../node_modules/react-native-screens`)
+  - TrezorCrypto
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
@@ -383,6 +385,7 @@ SPEC REPOS:
     - Flipper-RSocket
     - FlipperKit
     - OpenSSL-Universal
+    - TrezorCrypto
     - YogaKit
 
 EXTERNAL SOURCES:
@@ -497,9 +500,10 @@ SPEC CHECKSUMS:
   RNFS: 2bd9eb49dc82fa9676382f0585b992c424cd59df
   RNGestureHandler: 7a5833d0f788dbd107fbb913e09aa0c1ff333c39
   RNScreens: 0e91da98ab26d5d04c7b59a9b6bd694124caf88c
+  TrezorCrypto: bfeea47a052dca2c77d4a39e1e183865e52de14d
   Yoga: 7d13633d129fd179e01b8953d38d47be90db185a
   YogaKit: f782866e155069a2cca2517aafea43200b01fd5a
 
-PODFILE CHECKSUM: 7ae78a70b84c543391069b7b8c48db1f99d13ed8
+PODFILE CHECKSUM: 34f7f9958fb2a07cc40fd0a0d0021d0b522e4943
 
 COCOAPODS: 1.10.0.rc.1

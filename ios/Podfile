@@ -8,6 +8,8 @@ target 'zilpayMobile' do
 
   use_react_native!(:path => config["reactNativePath"])
 
+  pod 'TrezorCrypto'
+
   target 'zilpayMobileTests' do
     inherit! :complete
     # Pods for testing
