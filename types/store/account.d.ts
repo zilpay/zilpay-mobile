@@ -13,4 +13,10 @@ export interface Account {
   name: string;
   index: string;
   type: AccountTypes;
+  nonce: number;
+  privKey?: string;
+}
+export interface AccountState {
+  identities: Account[];
+  selectedAddress: number;
 }

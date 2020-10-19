@@ -19,6 +19,7 @@
     "@react-navigation/native": "^5.7.6",
     "@react-navigation/stack": "^5.9.3",
     "@unimodules/core": "^5.5.1",
+    "bip39": "^3.0.2",
     "effector": "^21.5.0",
     "effector-react": "^21.0.6",
     "expo-asset": "^8.2.0",
@@ -32,6 +33,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.8.4",
+    "@babel/preset-typescript": "^7.12.1",
     "@babel/runtime": "^7.8.4",
     "@types/jest": "^25.2.3",
     "@types/react-native": "^0.63.2",

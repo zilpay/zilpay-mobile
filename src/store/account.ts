@@ -7,11 +7,14 @@
  * Copyright (c) 2020 ZilPay
  */
 import { createDomain } from 'effector';
-import { Account } from 'types';
+import { AccountState } from 'types';
 
 const AccountDomain = createDomain();
-const initalState: Account[] = [];
-const store = AccountDomain.store(initalState);
+const initalState: AccountState = {
+  identities: [],
+  selectedAddress: 0
+};
+const store = AccountDomain.store<AccountState>(initalState);
 
 export default {
   store

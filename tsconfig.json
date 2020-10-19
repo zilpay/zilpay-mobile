@@ -5,6 +5,7 @@
     "paths": {
       "src/*": ["*"] // resolve any `src/foo/bar` to `<baseUrl>/foo/bar`
     },
+    "target": "es6",
     "allowSyntheticDefaultImports": true,
     "jsx": "react-native",
     "lib": ["dom", "esnext"],

@@ -51,7 +51,7 @@ export class Encryptor {
    * @param encryptedData - encryptedString - String to decrypt.
    * @param password - Password used for decryption.
    */
-  public async decrypt(encryptedData: EncryptedType, password: string): Promise<string> {
+  public async decrypt(password: string, encryptedData: EncryptedType): Promise<string> {
     const key = await this._generateKey(
       password,
       this._salt,

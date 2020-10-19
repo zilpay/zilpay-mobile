@@ -14,6 +14,6 @@ export const STORAGE_FIELDS = {
   THEME: 'theme',
   SELECTED_COIN: 'selectedcoin',
   CONFIG: 'config',
-  WALLET: 'wallet',
+  ACCOUNTS: 'accounts',
   TRANSACTIONS: 'transactions'
 };
