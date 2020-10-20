@@ -6,8 +6,6 @@
  * -----
  * Copyright (c) 2020 ZilPay
  */
-
-import { generateMnemonic, validateMnemonic } from 'bip39';
 import { MobileStorage, buildObject } from '../storage';
 import { AuthControler, Auth } from './auth';
 import { STORAGE_FIELDS } from '../../config';
@@ -17,11 +15,11 @@ export class WalletControler {
   private _auth: Auth | null = null;
 
   public validateMnemonic(mnemonic: string) {
-    return validateMnemonic(mnemonic);
+    return false;
   }
 
   public generateMnemonic() {
-    return generateMnemonic(128);
+    return '';
   }
 
   public async initWallet(password: string, mnemonic: string) {
