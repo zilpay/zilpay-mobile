@@ -11,8 +11,6 @@
 		13B07FBC1A68108700A75B9A /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.m */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
-		15A9EF5C253DCDC000460ADA /* Bip39.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15A9EF5B253DCDC000460ADA /* Bip39.swift */; };
-		15A9EF62253DCE5B00460ADA /* Bip39.m in Sources */ = {isa = PBXBuildFile; fileRef = 15A9EF61253DCE5B00460ADA /* Bip39.m */; };
 		2D02E4BC1E0B4A80006451C7 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.m */; };
 		2D02E4BD1E0B4A84006451C7 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		2D02E4BF1E0B4AB3006451C7 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
@@ -50,9 +48,6 @@
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = zilpayMobile/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = zilpayMobile/Info.plist; sourceTree = "<group>"; };
 		13B07FB71A68108700A75B9A /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = zilpayMobile/main.m; sourceTree = "<group>"; };
-		15A9EF5A253DCDC000460ADA /* zilpayMobile-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "zilpayMobile-Bridging-Header.h"; sourceTree = "<group>"; };
-		15A9EF5B253DCDC000460ADA /* Bip39.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bip39.swift; sourceTree = "<group>"; };
-		15A9EF61253DCE5B00460ADA /* Bip39.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Bip39.m; sourceTree = "<group>"; };
 		213068AB36243429AF9584EE /* Pods-zilpayMobile-zilpayMobileTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-zilpayMobile-zilpayMobileTests.debug.xcconfig"; path = "Target Support Files/Pods-zilpayMobile-zilpayMobileTests/Pods-zilpayMobile-zilpayMobileTests.debug.xcconfig"; sourceTree = "<group>"; };
 		2B41D9F7C1AAD2548D52D76D /* Pods-zilpayMobile.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-zilpayMobile.debug.xcconfig"; path = "Target Support Files/Pods-zilpayMobile/Pods-zilpayMobile.debug.xcconfig"; sourceTree = "<group>"; };
 		2D02E47B1E0B4A5D006451C7 /* zilpayMobile-tvOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "zilpayMobile-tvOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -131,16 +126,6 @@
 			name = zilpayMobile;
 			sourceTree = "<group>";
 		};
-		15A9EF59253DCDAB00460ADA /* bip39 */ = {
-			isa = PBXGroup;
-			children = (
-				15A9EF5B253DCDC000460ADA /* Bip39.swift */,
-				15A9EF5A253DCDC000460ADA /* zilpayMobile-Bridging-Header.h */,
-				15A9EF61253DCE5B00460ADA /* Bip39.m */,
-			);
-			name = bip39;
-			sourceTree = "<group>";
-		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -155,7 +140,6 @@
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
 			isa = PBXGroup;
 			children = (
-				15A9EF59253DCDAB00460ADA /* bip39 */,
 			);
 			name = Libraries;
 			sourceTree = "<group>";
@@ -521,8 +505,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				15A9EF5C253DCDC000460ADA /* Bip39.swift in Sources */,
-				15A9EF62253DCE5B00460ADA /* Bip39.m in Sources */,
 				13B07FBC1A68108700A75B9A /* AppDelegate.m in Sources */,
 				13B07FC11A68108700A75B9A /* main.m in Sources */,
 			);
@@ -565,7 +547,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 213068AB36243429AF9584EE /* Pods-zilpayMobile-zilpayMobileTests.debug.xcconfig */;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
@@ -589,7 +570,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 721F395010B42E11D3700D9C /* Pods-zilpayMobile-zilpayMobileTests.release.xcconfig */;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COPY_PHASE_STRIP = NO;
 				INFOPLIST_FILE = zilpayMobileTests/Info.plist;
