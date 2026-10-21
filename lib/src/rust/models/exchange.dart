@@ -4,6 +4,7 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+import 'exchange/cowswap.dart';
 import 'exchange/pancakeswap.dart';
 import 'exchange/plunderswap.dart';
 import 'exchange/relay.dart';
@@ -61,6 +62,9 @@ sealed class ExchangeProvider with _$ExchangeProvider {
   const factory ExchangeProvider.sunSwap(
     SunSwapMeta field0,
   ) = ExchangeProvider_SunSwap;
+  const factory ExchangeProvider.cowSwap(
+    CowMeta field0,
+  ) = ExchangeProvider_CowSwap;
 }
 
 /// Display metadata composed on the Dart side and threaded into every tx built for a swap.

@@ -22,7 +22,6 @@ mod exchange_tests {
     use zilpay::proto::U256;
     use zilpay::rpc::network_config::ChainConfig;
     use zilpay::tokio;
-    use zilpay::tokio::sync::Mutex;
 
     const PASSWORD: &str = "test_password";
     const MNEMONIC_STR: &str = "test test test test test test test test test test test junk";
@@ -30,16 +29,10 @@ mod exchange_tests {
     const USDC_MAINNET: &str = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
     const ONE_ETH: &str = "1000000000000000000";
 
-    // The service (and its crypto provider) can only be initialized once per process, so
-    // all tests share a single boot guarded by this lock.
-    static SETUP_DONE: Mutex<bool> = Mutex::const_new(false);
-
-    /// Boot the service exactly once per test process: load mainnet chains and add a
-    /// single mainnet-ETH wallet (wallet 0 / account 0). Idempotent across tests.
+    /// Boot the service with mainnet chains and a single mainnet-ETH wallet (wallet 0 / account 0)
+    /// if not already running. Callers must hold `crate::tests::TEST_SERVICE_LOCK`.
     async fn setup_eth_wallet() {
-        let mut done = SETUP_DONE.lock().await;
-        if *done || is_service_running().await {
-            *done = true;
+        if is_service_running().await {
             return;
         }
 
@@ -95,8 +88,6 @@ mod exchange_tests {
         add_bip39_wallet(params, wallet_settings, vec![])
             .await
             .unwrap();
-
-        *done = true;
     }
 
     /// Pick the bootstrapped native-ETH (chain 1) asset with a Uniswap provider, the USDC (chain 1)
@@ -129,6 +120,7 @@ mod exchange_tests {
 
     #[zilpay::tokio::test]
     async fn test_bootstrap_exchange_providers() {
+        let _guard = crate::tests::TEST_SERVICE_LOCK.lock().await;
         setup_eth_wallet().await;
 
         let assets = bootstrap_exchange_providers(0, 0).unwrap();
@@ -141,6 +133,14 @@ mod exchange_tests {
             }),
             "mainnet ETH wallet should expose a Uniswap provider"
         );
+        assert!(
+            assets.iter().any(|a| {
+                a.providers
+                    .iter()
+                    .any(|p| matches!(p, ExchangeProvider::CowSwap(m) if m.common.chain_id == 1))
+            }),
+            "mainnet ETH wallet should expose a CowSwap provider"
+        );
     }
 
     /// Live build via on-chain quoting: native ETH -> USDC on mainnet (no permit, one
@@ -149,6 +149,7 @@ mod exchange_tests {
     #[ignore]
     #[zilpay::tokio::test]
     async fn test_build_exchange_tx_native() {
+        let _guard = crate::tests::TEST_SERVICE_LOCK.lock().await;
         setup_eth_wallet().await;
         let (eth, usdc, provider) = uniswap_asset().await;
 
@@ -202,6 +203,7 @@ mod exchange_tests {
     #[ignore]
     #[zilpay::tokio::test]
     async fn test_refresh_exchange_quotes() {
+        let _guard = crate::tests::TEST_SERVICE_LOCK.lock().await;
         setup_eth_wallet().await;
         let (asset, usdc, _) = uniswap_asset().await;
 
@@ -223,5 +225,93 @@ mod exchange_tests {
         );
 
         dbg!(out);
+    }
+
+    #[ignore]
+    #[zilpay::tokio::test]
+    async fn test_cowswap_live_quote() {
+        let _guard = crate::tests::TEST_SERVICE_LOCK.lock().await;
+        setup_eth_wallet().await;
+        let assets = bootstrap_exchange_providers(0, 0).unwrap();
+        let eth = assets
+            .iter()
+            .find(|a| {
+                a.token.native
+                    && a.providers.iter().any(
+                        |p| matches!(p, ExchangeProvider::CowSwap(m) if m.common.chain_id == 1),
+                    )
+            })
+            .cloned()
+            .expect("expected native ETH (chain 1) with a CowSwap provider");
+        let cow_provider = eth
+            .providers
+            .iter()
+            .find(|p| matches!(p, ExchangeProvider::CowSwap(m) if m.common.chain_id == 1))
+            .cloned()
+            .expect("ETH should have CowSwap provider");
+        let mut usdc = eth.clone();
+        usdc.token.symbol = "USDC".to_string();
+        usdc.token.name = "USD Coin".to_string();
+        usdc.token.decimals = 6;
+        usdc.token.addr = USDC_MAINNET.to_string();
+        usdc.token.native = false;
+
+        let quote = cow_provider
+            .quote_info(
+                &usdc,
+                &eth,
+                &usdc.token.addr,
+                &eth.token.addr,
+                "1000000000", // 1,000 USDC
+            )
+            .await
+            .expect("live CoW quote for 1,000 USDC -> ETH");
+
+        let out: U256 = quote.amount_out.parse().unwrap();
+        assert!(out > U256::ZERO, "CoW quote should return non-zero ETH output");
+        assert!(
+            quote.permit_typed_data_json.is_some(),
+            "ERC-20 CoW quote must attach EIP-712 Order typed data JSON"
+        );
+
+        // Round-trip prepare_swap -> EIP-712 sign -> finalize_swap (POST /api/v1/orders with quoteId)
+        let prepared = cow_provider
+            .prepare_swap(&usdc, &eth, "1000000000", 50)
+            .await
+            .expect("prepare CoW swap");
+        let typed_data = prepared
+            .permit_typed_data_json
+            .expect("typed data present");
+
+        let (_, sig) = crate::api::transaction::sign_typed_data_eip712(
+            0,
+            0,
+            Some(PASSWORD.to_string()),
+            None,
+            typed_data,
+            Some("Permit".to_string()),
+            None,
+        )
+        .await
+        .expect("sign CoW Order EIP-712");
+
+        let post_res = cow_provider
+            .finalize_swap(
+                &prepared.quote_blob,
+                Some(&sig),
+                "Swap".to_string(),
+                "1000 USDC -> ETH".to_string(),
+                None,
+            )
+            .await;
+        eprintln!("[cowswap-roundtrip] POST /api/v1/orders response: {post_res:?}");
+        // The orderbook validates appData, appDataHash, quoteId, amounts, and EIP-712 signature
+        // before checking on-chain USDC balance for the test mnemonic address.
+        if let Err(ref err) = post_res {
+            assert!(
+                err.contains("InsufficientBalance") || err.contains("InsufficientAllowance"),
+                "expected orderbook to pass schema/quoteId/signature validation and reach balance check, got: {err}"
+            );
+        }
     }
 }

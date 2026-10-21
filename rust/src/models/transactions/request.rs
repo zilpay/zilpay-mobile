@@ -23,6 +23,13 @@ use super::scilla::TransactionRequestScilla;
 use super::transaction_metadata::TransactionMetadataInfo;
 use super::tron::TransactionRequestTron;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CowOrderInfo {
+    pub uid: String,
+    pub orderbook_url: String,
+    pub valid_to: u32,
+}
+
 #[derive(Debug, Clone)]
 pub struct TransactionRequestInfo {
     pub metadata: TransactionMetadataInfo,
@@ -31,6 +38,7 @@ pub struct TransactionRequestInfo {
     pub btc: Option<(TransactionBitcoin, BitcoinMetadataInfo)>,
     pub tron: Option<TransactionRequestTron>,
     pub solana: Option<Vec<u8>>,
+    pub cow_order: Option<CowOrderInfo>,
 }
 
 impl TryFrom<TransactionRequestInfo> for TransactionRequest {
@@ -81,6 +89,7 @@ impl TryFrom<TransactionRequest> for TransactionRequestInfo {
                 btc: None,
                 tron: None,
                 solana: None,
+                cow_order: None,
             }),
             TransactionRequest::Ethereum((tx, metadata)) => Ok(Self {
                 metadata: metadata.into(),
@@ -89,6 +98,7 @@ impl TryFrom<TransactionRequest> for TransactionRequestInfo {
                 btc: None,
                 tron: None,
                 solana: None,
+                cow_order: None,
             }),
             TransactionRequest::Bitcoin((tx, req_meta, btc_meta)) => {
                 let network = req_meta
@@ -109,6 +119,7 @@ impl TryFrom<TransactionRequest> for TransactionRequestInfo {
                     btc: Some((tx_info, btc_meta_info)),
                     tron: None,
                     solana: None,
+                    cow_order: None,
                 })
             }
             TransactionRequest::Tron((tx, metadata)) => {
@@ -120,6 +131,7 @@ impl TryFrom<TransactionRequest> for TransactionRequestInfo {
                     btc: None,
                     tron: Some(TransactionRequestTron::from(tron_web)),
                     solana: None,
+                    cow_order: None,
                 })
             }
             TransactionRequest::Solana((tx, metadata)) => Ok(Self {
@@ -129,6 +141,7 @@ impl TryFrom<TransactionRequest> for TransactionRequestInfo {
                 btc: None,
                 tron: None,
                 solana: Some(tx.message),
+                cow_order: None,
             }),
         }
     }

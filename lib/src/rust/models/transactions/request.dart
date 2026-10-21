@@ -13,6 +13,30 @@ import 'scilla.dart';
 import 'transaction_metadata.dart';
 import 'tron.dart';
 
+class CowOrderInfo {
+  final String uid;
+  final String orderbookUrl;
+  final int validTo;
+
+  const CowOrderInfo({
+    required this.uid,
+    required this.orderbookUrl,
+    required this.validTo,
+  });
+
+  @override
+  int get hashCode => uid.hashCode ^ orderbookUrl.hashCode ^ validTo.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CowOrderInfo &&
+          runtimeType == other.runtimeType &&
+          uid == other.uid &&
+          orderbookUrl == other.orderbookUrl &&
+          validTo == other.validTo;
+}
+
 class TransactionRequestInfo {
   final TransactionMetadataInfo metadata;
   final TransactionRequestScilla? scilla;
@@ -20,6 +44,7 @@ class TransactionRequestInfo {
   final (TransactionBitcoin, BitcoinMetadataInfo)? btc;
   final TransactionRequestTron? tron;
   final Uint8List? solana;
+  final CowOrderInfo? cowOrder;
 
   const TransactionRequestInfo({
     required this.metadata,
@@ -28,6 +53,7 @@ class TransactionRequestInfo {
     this.btc,
     this.tron,
     this.solana,
+    this.cowOrder,
   });
 
   @override
@@ -37,7 +63,8 @@ class TransactionRequestInfo {
       evm.hashCode ^
       btc.hashCode ^
       tron.hashCode ^
-      solana.hashCode;
+      solana.hashCode ^
+      cowOrder.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -49,5 +76,6 @@ class TransactionRequestInfo {
           evm == other.evm &&
           btc == other.btc &&
           tron == other.tron &&
-          solana == other.solana;
+          solana == other.solana &&
+          cowOrder == other.cowOrder;
 }

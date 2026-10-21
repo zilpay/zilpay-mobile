@@ -210,7 +210,7 @@ pub(super) async fn execute_evm_exchange_swap(
         None
     };
 
-    let mut swap_tx: TransactionRequest = provider
+    let finalized = provider
         .finalize_swap(
             &prepared.quote_blob,
             permit_signature.as_deref(),
@@ -218,24 +218,38 @@ pub(super) async fn execute_evm_exchange_swap(
             swap_info,
             out_token,
         )
-        .await?
-        .try_into()
-        .map_err(ServiceError::TransactionErrors)?;
-    apply_swap_gas_limit(&core, chain_hash, &mut swap_tx).await;
-    apply_fast_fees(&mut swap_tx, &base, nonce)?;
+        .await?;
 
-    let _ = sink.add("swapping".to_string());
-    let swapped = sign_and_broadcast_one(
-        &core,
-        auth.wallet_index,
-        auth.account_index,
-        &seed,
-        &secret_passphrase,
-        swap_tx,
-    )
-    .await?;
-    eprintln!("[evm-swap] swap broadcast hash={:?}", swapped.metadata.hash);
-    results.push(swapped);
+    let cow_order = finalized.cow_order.clone();
+    if finalized.evm.is_some() {
+        let mut swap_tx: TransactionRequest = finalized
+            .try_into()
+            .map_err(ServiceError::TransactionErrors)?;
+        apply_swap_gas_limit(&core, chain_hash, &mut swap_tx).await;
+        apply_fast_fees(&mut swap_tx, &base, nonce)?;
+
+        let _ = sink.add("swapping".to_string());
+        let swapped = sign_and_broadcast_one(
+            &core,
+            auth.wallet_index,
+            auth.account_index,
+            &seed,
+            &secret_passphrase,
+            swap_tx,
+        )
+        .await?;
+        eprintln!("[evm-swap] swap broadcast hash={:?}", swapped.metadata.hash);
+        results.push(swapped);
+    } else {
+        let _ = sink.add("swapping".to_string());
+    }
+
+    if let Some(order) = cow_order {
+        let _ = sink.add(format!(
+            "cow_order:{}|{}|{}",
+            order.uid, order.orderbook_url, order.valid_to
+        ));
+    }
     let _ = sink.add("done".to_string());
 
     Ok(results)

@@ -30,7 +30,7 @@ use zilpay::rpc::{
 use zilpay::serde;
 use zilpay::serde_json::{self, json, Value};
 
-use super::{ExchangeAsset, ProviderQuote};
+use super::{ExchangeAsset, ProviderQuote, APP_FEE_BPS};
 use crate::models::transactions::base_token::BaseTokenInfo;
 use crate::models::transactions::request::TransactionRequestInfo;
 use crate::utils::errors::ServiceError;
@@ -49,7 +49,7 @@ const CMD_UNWRAP_WETH: u8 = 0x0c;
 // subsequent PAY_PORTION / SWEEP commands can split the swap output.
 const ADDRESS_THIS: Address = Address::with_last_byte(2);
 
-const FEE_BIPS: u32 = 50;
+const FEE_BIPS: u32 = APP_FEE_BPS;
 const FEE_RECIPIENT: Address = address!("0x74d35b31ed6b31818331bc28fe343669126f152f");
 
 const PERMIT_AMOUNT: U160 = U160::MAX;
@@ -1188,5 +1188,60 @@ mod engine_tests {
         use zilpay::alloy::primitives::keccak256;
         let expected = &keccak256("allowance(address,address,address)")[..4];
         assert_eq!(IPermit2::allowanceCall::SELECTOR.as_slice(), expected);
+    }
+
+    #[test]
+    fn execute_calldata_encodes_100_bps_platform_fee() {
+        assert_eq!(FEE_BIPS, 100);
+        let plan = SwapPlan {
+            token_in: addr(0xaa),
+            token_out: addr(0xbb),
+            amount_in: U256::from(1_000u64),
+            amount_out_min: U256::from(900u64),
+            fee_tier: 500,
+            recipient: addr(0xcc),
+            input: SwapInput::NativeEth,
+            native_out: false,
+        };
+        let data = build_execute_calldata(plan, U256::from(123u64));
+        let decoded = executeCall::abi_decode(&data).unwrap();
+        assert_eq!(decoded.commands[2], CMD_PAY_PORTION);
+        let (tok, rec, bps): (Address, Address, U256) =
+            <(Address, Address, U256)>::abi_decode_params(&decoded.inputs[2]).unwrap();
+        assert_eq!(tok, addr(0xbb));
+        assert_eq!(rec, FEE_RECIPIENT);
+        assert_eq!(bps, U256::from(100u64));
+    }
+
+    #[test]
+    fn build_router_tx_applies_100_bps_fee_and_slippage() {
+        let tx = build_router_tx(
+            addr(0xee),
+            1,
+            1,
+            addr(0xcc),
+            &addr(0xaa).to_string(),
+            &addr(0xbb).to_string(),
+            "10000",
+            "10000",
+            500,
+            50, // 0.50% slippage
+            999_999,
+            true,
+            false,
+            None,
+            None,
+        )
+        .unwrap();
+        let TransactionRequest::Ethereum((eth, _)) = tx else {
+            panic!("expected ethereum tx");
+        };
+        let data = eth.input.input.unwrap();
+        let decoded = executeCall::abi_decode(&data).unwrap();
+        // SWEEP is at index 3: (token_out, recipient, amount_out_min)
+        let (_, _, min_out): (Address, Address, U256) =
+            <(Address, Address, U256)>::abi_decode_params(&decoded.inputs[3]).unwrap();
+        // 10000 * 9950 / 10000 = 9950; 9950 * 9900 / 10000 = 9850
+        assert_eq!(min_out, U256::from(9850u64));
     }
 }

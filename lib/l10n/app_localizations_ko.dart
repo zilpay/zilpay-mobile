@@ -325,6 +325,38 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exchangeConfirmHintPreparing => '준비 중…';
 
   @override
+  String get exchangeConfirmServiceFee => '서비스 수수료';
+
+  @override
+  String get exchangeConfirmOrderUid => '주문 UID';
+
+  @override
+  String get exchangeConfirmOrderStatus => '상태';
+
+  @override
+  String get exchangeConfirmOrderExpiresIn => '만료 시간';
+
+  @override
+  String get exchangeConfirmOrderCancelling => '취소 중…';
+
+  @override
+  String get exchangeConfirmOrderCancel => '주문 취소';
+
+  @override
+  String get exchangeConfirmOrderClose => '닫기';
+
+  @override
+  String get exchangeConfirmOrderEthFlowNote => '네이티브 토큰 주문은 EthFlow를 통해 온체인으로 접수되며 만료 시 자동으로 환불됩니다.';
+
+  @override
+  String get exchangeConfirmOrderCancelNote => '오프체인 취소는 최선형(best-effort)으로 처리되며, 솔버가 이미 주문을 결제 중인 경우 실패할 수 있습니다.';
+
+  @override
+  String exchangeConfirmOrderCancelFailed(String error) {
+    return '취소 실패 (솔버가 이미 결제 중일 수 있습니다): $error';
+  }
+
+  @override
   String exchangeHistoryApprove(String symbol) {
     return '$symbol 승인';
   }

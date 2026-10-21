@@ -106,7 +106,11 @@ pub async fn finalize_exchange_swap(
     if provider.is_relay() && finalized.tron.is_some() {
         return Ok(finalized);
     }
+    if finalized.evm.is_none() && finalized.scilla.is_none() && finalized.cow_order.is_some() {
+        return Ok(finalized);
+    }
 
+    let cow_order = finalized.cow_order.clone();
     let is_scilla = finalized.scilla.is_some();
     let mut swap_tx: TransactionRequest = finalized
         .try_into()
@@ -122,9 +126,11 @@ pub async fn finalize_exchange_swap(
     let base = estimate_fast_params(&core, chain_hash, &signer).await?;
     apply_fast_fees(&mut swap_tx, &base, nonce)?;
 
-    Ok(swap_tx
+    let mut info: TransactionRequestInfo = swap_tx
         .try_into()
-        .map_err(ServiceError::TransactionErrors)?)
+        .map_err(ServiceError::TransactionErrors)?;
+    info.cow_order = cow_order;
+    Ok(info)
 }
 
 pub async fn estimate_swap_base_nonce(

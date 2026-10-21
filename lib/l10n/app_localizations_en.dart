@@ -326,6 +326,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exchangeConfirmHintPreparing => 'Preparing…';
 
   @override
+  String get exchangeConfirmServiceFee => 'Service fee';
+
+  @override
+  String get exchangeConfirmOrderUid => 'Order UID';
+
+  @override
+  String get exchangeConfirmOrderStatus => 'Status';
+
+  @override
+  String get exchangeConfirmOrderExpiresIn => 'Expires in';
+
+  @override
+  String get exchangeConfirmOrderCancelling => 'Cancelling…';
+
+  @override
+  String get exchangeConfirmOrderCancel => 'Cancel Order';
+
+  @override
+  String get exchangeConfirmOrderClose => 'Close';
+
+  @override
+  String get exchangeConfirmOrderEthFlowNote => 'Native-token orders are placed on-chain via EthFlow and refund automatically if expired.';
+
+  @override
+  String get exchangeConfirmOrderCancelNote => 'Off-chain cancellation is best-effort and may fail if a solver is already settling your order.';
+
+  @override
+  String exchangeConfirmOrderCancelFailed(String error) {
+    return 'Cancellation failed (solver may already be settling): $error';
+  }
+
+  @override
   String exchangeHistoryApprove(String symbol) {
     return 'Approve $symbol';
   }

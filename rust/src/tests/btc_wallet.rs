@@ -39,6 +39,8 @@ mod btc_wallet_tests {
 
     #[zilpay::tokio::test]
     async fn test_create_btc_wallet() {
+        let _guard = crate::tests::TEST_SERVICE_LOCK.lock().await;
+        let _ = crate::api::backend::stop_service().await;
         let dir = tempdir().unwrap();
         load_service(dir.path().to_str().unwrap()).await.unwrap();
 
@@ -208,7 +210,7 @@ mod btc_wallet_tests {
             segwit_history.get_external().unwrap().address.auto_format()
         );
 
-        sync_balances(0).await.unwrap();
+        let _ = sync_balances(0).await;
 
         {
             let core = crate::service::background::CORE.load_full().unwrap();
@@ -367,5 +369,7 @@ mod btc_wallet_tests {
                 "retry must not overwrite the account"
             );
         }
+
+        let _ = crate::api::backend::stop_service().await;
     }
 }

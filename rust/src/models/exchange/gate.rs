@@ -11,8 +11,8 @@ use flutter_rust_bridge::frb;
 use futures::future::join_all;
 
 use crate::models::exchange::{
-    plunderswap::gate as plunder_gate, relay, sunswap::gate as sun_gate, EagerGate, ExchangeAsset,
-    ExchangeProvider,
+    cowswap::gate as cow_gate, plunderswap::gate as plunder_gate, relay, sunswap::gate as sun_gate,
+    EagerGate, ExchangeAsset, ExchangeProvider,
 };
 
 /// Probe amount in wrapped-native base units: 1,000 units scaled by `decimals`. The lens routes
@@ -39,6 +39,7 @@ async fn evaluate_eager(gate: EagerGate, assets: &[ExchangeAsset]) -> Vec<usize>
         EagerGate::Plunder => plunder_gate::evaluate_liquidity_eager(assets).await,
         EagerGate::Sun => sun_gate::evaluate_liquidity_eager(assets).await,
         EagerGate::Relay => relay::evaluate_support_eager(assets).await,
+        EagerGate::Cow => cow_gate::evaluate_support_eager(assets).await,
     }
 }
 

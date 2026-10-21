@@ -34,6 +34,7 @@ import 'models/book.dart';
 import 'models/btc_chain.dart';
 import 'models/connection.dart';
 import 'models/exchange.dart';
+import 'models/exchange/cowswap.dart';
 import 'models/exchange/pancakeswap.dart';
 import 'models/exchange/plunderswap.dart';
 import 'models/exchange/relay.dart';
@@ -203,6 +204,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ConnectionInfo dco_decode_box_autoadd_connection_info(dynamic raw);
 
   @protected
+  CowMeta dco_decode_box_autoadd_cow_meta(dynamic raw);
+
+  @protected
+  CowOrderInfo dco_decode_box_autoadd_cow_order_info(dynamic raw);
+
+  @protected
   ExchangeAsset dco_decode_box_autoadd_exchange_asset(dynamic raw);
 
   @protected
@@ -323,6 +330,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ConnectionInfo dco_decode_connection_info(dynamic raw);
+
+  @protected
+  CowCfg dco_decode_cow_cfg(dynamic raw);
+
+  @protected
+  CowMeta dco_decode_cow_meta(dynamic raw);
+
+  @protected
+  CowOrderInfo dco_decode_cow_order_info(dynamic raw);
 
   @protected
   Eip712Hashes dco_decode_eip_712_hashes(dynamic raw);
@@ -546,6 +562,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ColorsInfo? dco_decode_opt_box_autoadd_colors_info(dynamic raw);
+
+  @protected
+  CowOrderInfo? dco_decode_opt_box_autoadd_cow_order_info(dynamic raw);
 
   @protected
   double? dco_decode_opt_box_autoadd_f_32(dynamic raw);
@@ -949,6 +968,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       SseDeserializer deserializer);
 
   @protected
+  CowMeta sse_decode_box_autoadd_cow_meta(SseDeserializer deserializer);
+
+  @protected
+  CowOrderInfo sse_decode_box_autoadd_cow_order_info(
+      SseDeserializer deserializer);
+
+  @protected
   ExchangeAsset sse_decode_box_autoadd_exchange_asset(
       SseDeserializer deserializer);
 
@@ -1086,6 +1112,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ConnectionInfo sse_decode_connection_info(SseDeserializer deserializer);
+
+  @protected
+  CowCfg sse_decode_cow_cfg(SseDeserializer deserializer);
+
+  @protected
+  CowMeta sse_decode_cow_meta(SseDeserializer deserializer);
+
+  @protected
+  CowOrderInfo sse_decode_cow_order_info(SseDeserializer deserializer);
 
   @protected
   Eip712Hashes sse_decode_eip_712_hashes(SseDeserializer deserializer);
@@ -1337,6 +1372,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ColorsInfo? sse_decode_opt_box_autoadd_colors_info(
+      SseDeserializer deserializer);
+
+  @protected
+  CowOrderInfo? sse_decode_opt_box_autoadd_cow_order_info(
       SseDeserializer deserializer);
 
   @protected
@@ -1770,6 +1809,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       ConnectionInfo self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_cow_meta(CowMeta self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_cow_order_info(
+      CowOrderInfo self, SseSerializer serializer);
+
+  @protected
   void sse_encode_box_autoadd_exchange_asset(
       ExchangeAsset self, SseSerializer serializer);
 
@@ -1915,6 +1961,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_connection_info(
       ConnectionInfo self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_cow_cfg(CowCfg self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_cow_meta(CowMeta self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_cow_order_info(CowOrderInfo self, SseSerializer serializer);
 
   @protected
   void sse_encode_eip_712_hashes(Eip712Hashes self, SseSerializer serializer);
@@ -2179,6 +2234,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_colors_info(
       ColorsInfo? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_cow_order_info(
+      CowOrderInfo? self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_box_autoadd_f_32(double? self, SseSerializer serializer);

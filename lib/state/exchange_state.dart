@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:bearby/src/rust/api/exchange/bootstrap.dart';
 import 'package:bearby/src/rust/models/ftoken.dart';
 import 'package:bearby/src/rust/models/exchange.dart';
+import 'package:bearby/src/rust/models/exchange/cowswap.dart';
 import 'package:bearby/src/rust/models/exchange/pancakeswap.dart';
 import 'package:bearby/src/rust/models/exchange/plunderswap.dart';
 import 'package:bearby/src/rust/models/exchange/relay.dart';
@@ -19,6 +20,7 @@ extension ExchangeProviderMeta on ExchangeProvider {
         plunderSwap: (v) => v.field0.common,
         zilSwap: (v) => v.field0.common,
         sunSwap: (v) => v.field0.common,
+        cowSwap: (v) => v.field0.common,
       );
 
   ProviderQuote? get quote => map(
@@ -28,6 +30,7 @@ extension ExchangeProviderMeta on ExchangeProvider {
         plunderSwap: (v) => v.field0.quote,
         zilSwap: (v) => v.field0.quote,
         sunSwap: (v) => v.field0.quote,
+        cowSwap: (v) => v.field0.quote,
       );
 
   int get defaultSlippageBps => map(
@@ -37,6 +40,7 @@ extension ExchangeProviderMeta on ExchangeProvider {
         plunderSwap: (v) => v.field0.cfg.defaultSlippageBps,
         zilSwap: (_) => 50,
         sunSwap: (_) => 50,
+        cowSwap: (v) => v.field0.cfg.defaultSlippageBps,
       );
 
   bool get supportsPriceProtection => map(
@@ -46,6 +50,7 @@ extension ExchangeProviderMeta on ExchangeProvider {
         plunderSwap: (v) => v.field0.cfg.supportsPriceProtection,
         zilSwap: (_) => false,
         sunSwap: (_) => false,
+        cowSwap: (v) => v.field0.cfg.supportsPriceProtection,
       );
 
   /// Whether the user can route the swap to an arbitrary recipient address.
@@ -60,6 +65,7 @@ extension ExchangeProviderMeta on ExchangeProvider {
         plunderSwap: (_) => false,
         zilSwap: (_) => false,
         sunSwap: (_) => false,
+        cowSwap: (_) => false,
       );
 }
 
@@ -404,6 +410,15 @@ class ExchangeState extends ChangeNotifier {
       sunSwap: (v) => ExchangeProvider.sunSwap(SunSwapMeta(
         common: v.field0.common,
         cfg: v.field0.cfg,
+        quote: null,
+      )),
+      cowSwap: (v) => ExchangeProvider.cowSwap(CowMeta(
+        common: v.field0.common,
+        cfg: v.field0.cfg,
+        orderbookUrl: v.field0.orderbookUrl,
+        settlement: v.field0.settlement,
+        vaultRelayer: v.field0.vaultRelayer,
+        domainSeparator: v.field0.domainSeparator,
         quote: null,
       )),
     );

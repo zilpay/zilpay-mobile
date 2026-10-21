@@ -33,7 +33,12 @@ pub(in crate::models::exchange) async fn evaluate_liquidity_eager(
     // the Zilliqa chain and `resolve()` yields the lens config. No clone, no reconstruction.
     let Some(meta) = find_meta(assets, |p| match p {
         ExchangeProvider::PlunderSwap(m) => Some(m),
-        _ => None,
+        ExchangeProvider::Relay(_)
+        | ExchangeProvider::Uniswap(_)
+        | ExchangeProvider::PancakeSwap(_)
+        | ExchangeProvider::ZilSwap(_)
+        | ExchangeProvider::SunSwap(_)
+        | ExchangeProvider::CowSwap(_) => None,
     }) else {
         return Vec::new();
     };

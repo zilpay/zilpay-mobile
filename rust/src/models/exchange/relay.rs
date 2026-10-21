@@ -27,13 +27,13 @@ use zilpay::serde_json;
 use zilpay::solana_instruction::{AccountMeta, Instruction};
 use zilpay::solana_pubkey::Pubkey;
 
-use super::{ExchangeAsset, ProviderCommon, ProviderQuote};
+use super::{ExchangeAsset, ProviderCommon, ProviderQuote, APP_FEE_BPS, APP_FEE_RECIPIENT};
 use crate::models::exchange::univ_router::PreparedSwap;
 use crate::models::transactions::base_token::BaseTokenInfo;
 use crate::models::transactions::request::TransactionRequestInfo;
 
-const FEE_RECIPIENT: &str = "0x74d35b31ed6b31818331bc28fe343669126f152f";
-const FEE_BIPS: u32 = 50;
+const FEE_RECIPIENT: &str = APP_FEE_RECIPIENT;
+const FEE_BIPS: u32 = APP_FEE_BPS;
 
 const RELAY_BASE_URLS: &[&str] = &["https://api.relay.link"];
 

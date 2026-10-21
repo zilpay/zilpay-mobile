@@ -1,3 +1,4 @@
+pub mod cowswap;
 pub mod gate;
 pub mod pancakeswap;
 pub mod plunderswap;
@@ -19,12 +20,33 @@ use super::ftoken::FTokenInfo;
 use super::transactions::base_token::BaseTokenInfo;
 use super::transactions::request::TransactionRequestInfo;
 
+pub use cowswap::CowMeta;
 pub use pancakeswap::PancakeMeta;
 pub use plunderswap::PlunderMeta;
 pub use relay::RelayMeta;
 pub use sunswap::SunSwapMeta;
 pub use uniswap::UniswapMeta;
 pub use univ_router::{PreparedSwap, RouterConfig};
+
+/// Canonical Bearby platform fee recipient and basis points (100 bps = 1.00%).
+pub const APP_FEE_RECIPIENT: &str = "0x74d35b31ed6b31818331bc28fe343669126f152f";
+pub const APP_FEE_BPS: u32 = 100;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AppFeeConfig {
+    pub recipient: &'static str,
+    pub bps: u32,
+}
+
+impl AppFeeConfig {
+    #[frb(ignore)]
+    pub const fn default_fee() -> Self {
+        Self {
+            recipient: APP_FEE_RECIPIENT,
+            bps: APP_FEE_BPS,
+        }
+    }
+}
 
 /// Unified chain + account context shared by every provider variant.
 /// Participates in Hash/Eq/Ord and forms the provider identity key.
@@ -107,6 +129,7 @@ identity_from_common!(PancakeMeta);
 identity_from_common!(PlunderMeta);
 identity_from_common!(ZilSwapMeta);
 identity_from_common!(SunSwapMeta);
+identity_from_common!(CowMeta);
 
 #[derive(Debug, PartialEq, PartialOrd, Eq, Hash, Clone)]
 pub enum ExchangeProvider {
@@ -116,14 +139,23 @@ pub enum ExchangeProvider {
     PlunderSwap(PlunderMeta),
     ZilSwap(ZilSwapMeta),
     SunSwap(SunSwapMeta),
+    CowSwap(CowMeta),
 }
 
 impl ExchangeProvider {
     /// `true` for bridge providers that can route across chains (Relay).
-    /// `false` for same-chain DEX providers (Uniswap, PancakeSwap, PlunderSwap, ZilSwap, SunSwap).
+    /// `false` for same-chain DEX providers (Uniswap, PancakeSwap, PlunderSwap, ZilSwap, SunSwap, CowSwap).
     #[frb(ignore)]
     pub const fn is_bridge(&self) -> bool {
-        matches!(self, Self::Relay(_))
+        match self {
+            Self::Relay(_) => true,
+            Self::Uniswap(_)
+            | Self::PancakeSwap(_)
+            | Self::PlunderSwap(_)
+            | Self::ZilSwap(_)
+            | Self::SunSwap(_)
+            | Self::CowSwap(_) => false,
+        }
     }
 
     #[frb(ignore)]
@@ -135,6 +167,7 @@ impl ExchangeProvider {
             Self::PlunderSwap(m) => &m.common,
             Self::ZilSwap(m) => &m.common,
             Self::SunSwap(m) => &m.common,
+            Self::CowSwap(m) => &m.common,
         }
     }
 
@@ -147,6 +180,7 @@ impl ExchangeProvider {
             Self::PlunderSwap(m) => m.quote.as_ref(),
             Self::ZilSwap(m) => m.quote.as_ref(),
             Self::SunSwap(m) => m.quote.as_ref(),
+            Self::CowSwap(m) => m.quote.as_ref(),
         }
     }
 
@@ -177,6 +211,10 @@ impl ExchangeProvider {
                 m.quote = quote;
                 Self::SunSwap(m)
             }
+            Self::CowSwap(mut m) => {
+                m.quote = quote;
+                Self::CowSwap(m)
+            }
         }
     }
 
@@ -198,6 +236,7 @@ impl ExchangeProvider {
             Self::PlunderSwap(m) => m.cfg.default_slippage_bps,
             Self::SunSwap(m) => m.cfg.default_slippage_bps,
             Self::Relay(m) => m.cfg.default_slippage_bps,
+            Self::CowSwap(m) => m.cfg.default_slippage_bps,
             Self::ZilSwap(_) => 50,
         }
     }
@@ -210,6 +249,7 @@ impl ExchangeProvider {
             Self::PlunderSwap(m) => m.cfg.supports_price_protection,
             Self::SunSwap(m) => m.cfg.supports_price_protection,
             Self::Relay(m) => m.cfg.supports_price_protection,
+            Self::CowSwap(m) => m.cfg.supports_price_protection,
             Self::ZilSwap(_) => false,
         }
     }
@@ -233,12 +273,23 @@ impl ExchangeProvider {
                 addr_type == 0 && slip44 == ZILLIQA && zilswap::is_supported_chain(chain_id)
             }
             Self::SunSwap(_) => addr_type == 4 && slip44 == TRON,
+            Self::CowSwap(_) => {
+                addr_type == 1 && slip44 != ZILLIQA && cowswap::is_supported_chain(chain_id)
+            }
         }
     }
 
     #[frb(ignore)]
     pub const fn is_relay(&self) -> bool {
-        matches!(self, Self::Relay(_))
+        match self {
+            Self::Relay(_) => true,
+            Self::Uniswap(_)
+            | Self::PancakeSwap(_)
+            | Self::PlunderSwap(_)
+            | Self::ZilSwap(_)
+            | Self::SunSwap(_)
+            | Self::CowSwap(_) => false,
+        }
     }
 
     #[frb(ignore)]
@@ -249,22 +300,26 @@ impl ExchangeProvider {
         from_asset: &str,
         to_asset: &str,
     ) -> Result<bool, String> {
+        if from.token.chain_hash != to.token.chain_hash {
+            return Ok(false);
+        }
         match self {
-            Self::Uniswap(_) | Self::PancakeSwap(_)
-                if from.token.chain_hash == to.token.chain_hash =>
-            {
+            Self::Uniswap(_) | Self::PancakeSwap(_) => {
                 let cfg = self
                     .router_config()
                     .ok_or_else(|| "no engine".to_string())??;
                 univ_router::is_wrap_unwrap(&cfg, from_asset, to_asset, from.token.native)
             }
-            Self::PlunderSwap(meta) if from.token.chain_hash == to.token.chain_hash => {
+            Self::PlunderSwap(meta) => {
                 plunderswap::is_wrap_unwrap(meta, from, to, from_asset, to_asset)
             }
-            Self::SunSwap(meta) if from.token.chain_hash == to.token.chain_hash => {
+            Self::SunSwap(meta) => {
                 sunswap::is_wrap_unwrap(meta, from, to, from_asset, to_asset)
             }
-            _ => Ok(false),
+            Self::CowSwap(meta) => {
+                cowswap::is_wrap_unwrap(meta, from, to, from_asset, to_asset)
+            }
+            Self::Relay(_) | Self::ZilSwap(_) => Ok(false),
         }
     }
 
@@ -290,7 +345,8 @@ impl ExchangeProvider {
             | Self::PancakeSwap(_)
             | Self::PlunderSwap(_)
             | Self::ZilSwap(_)
-            | Self::SunSwap(_) => Cow::Borrowed(self.common().account_addr.as_str()),
+            | Self::SunSwap(_)
+            | Self::CowSwap(_) => Cow::Borrowed(self.common().account_addr.as_str()),
         };
 
         match self {
@@ -321,6 +377,9 @@ impl ExchangeProvider {
             }
             Self::SunSwap(meta) => {
                 sunswap::sunswap_quote_info(meta, from, to, from_asset, to_asset, amount).await
+            }
+            Self::CowSwap(meta) => {
+                cowswap::cowswap_quote_info(meta, from, to, from_asset, to_asset, amount).await
             }
         }
     }
@@ -383,6 +442,9 @@ impl ExchangeProvider {
             Self::SunSwap(meta) => {
                 sunswap::sunswap_check_approval(meta, from, to, amount, approve_title, icon).await
             }
+            Self::CowSwap(meta) => {
+                cowswap::cowswap_check_approval(meta, from, to, amount, approve_title, icon).await
+            }
         }
     }
 
@@ -426,6 +488,9 @@ impl ExchangeProvider {
             }
             Self::SunSwap(meta) => {
                 sunswap::sunswap_prepare_swap(meta, from, to, amount, slippage_bps).await
+            }
+            Self::CowSwap(meta) => {
+                cowswap::cowswap_prepare_swap(meta, from, to, amount, slippage_bps).await
             }
         }
     }
@@ -490,6 +555,18 @@ impl ExchangeProvider {
                 )
                 .await
             }
+            Self::CowSwap(meta) => {
+                cowswap::cowswap_finalize_swap(
+                    meta,
+                    quote_blob,
+                    permit_signature,
+                    swap_title,
+                    swap_info,
+                    icon,
+                    out_token,
+                )
+                .await
+            }
         }
     }
 
@@ -501,7 +578,8 @@ impl ExchangeProvider {
             Self::Relay(_)
             | Self::PlunderSwap(_)
             | Self::ZilSwap(_)
-            | Self::SunSwap(_) => None,
+            | Self::SunSwap(_)
+            | Self::CowSwap(_) => None,
         }
     }
 
@@ -515,7 +593,8 @@ impl ExchangeProvider {
             Self::PlunderSwap(_) => Some(EagerGate::Plunder),
             Self::SunSwap(_) => Some(EagerGate::Sun),
             Self::Relay(_) => Some(EagerGate::Relay),
-            Self::Uniswap(_) | Self::PancakeSwap(_) | Self::ZilSwap(_) => None
+            Self::CowSwap(_) => Some(EagerGate::Cow),
+            Self::Uniswap(_) | Self::PancakeSwap(_) | Self::ZilSwap(_) => None,
         }
     }
 }
@@ -529,6 +608,7 @@ pub(crate) enum EagerGate {
     Plunder,
     Sun,
     Relay,
+    Cow,
 }
 
 #[derive(Debug, Clone)]
@@ -547,7 +627,8 @@ impl ExchangeAsset {
             | ExchangeProvider::PancakeSwap(_)
             | ExchangeProvider::PlunderSwap(_)
             | ExchangeProvider::ZilSwap(_)
-            | ExchangeProvider::SunSwap(_) => None,
+            | ExchangeProvider::SunSwap(_)
+            | ExchangeProvider::CowSwap(_) => None,
         })
     }
 }

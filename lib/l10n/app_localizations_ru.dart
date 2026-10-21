@@ -328,6 +328,38 @@ class AppLocalizationsRu extends AppLocalizations {
   String get exchangeConfirmHintPreparing => 'Подготовка…';
 
   @override
+  String get exchangeConfirmServiceFee => 'Сервисная комиссия';
+
+  @override
+  String get exchangeConfirmOrderUid => 'UID ордера';
+
+  @override
+  String get exchangeConfirmOrderStatus => 'Статус';
+
+  @override
+  String get exchangeConfirmOrderExpiresIn => 'Истекает через';
+
+  @override
+  String get exchangeConfirmOrderCancelling => 'Отмена…';
+
+  @override
+  String get exchangeConfirmOrderCancel => 'Отменить ордер';
+
+  @override
+  String get exchangeConfirmOrderClose => 'Закрыть';
+
+  @override
+  String get exchangeConfirmOrderEthFlowNote => 'Ордера с нативным токеном размещаются ончейн через EthFlow и автоматически возвращаются при истечении срока.';
+
+  @override
+  String get exchangeConfirmOrderCancelNote => 'Оффчейн-отмена не гарантирована и может не сработать, если солвер уже исполняет ваш ордер.';
+
+  @override
+  String exchangeConfirmOrderCancelFailed(String error) {
+    return 'Не удалось отменить ордер (возможно, солвер уже исполняет его): $error';
+  }
+
+  @override
   String exchangeHistoryApprove(String symbol) {
     return 'Одобрить $symbol';
   }

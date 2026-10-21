@@ -36,7 +36,12 @@ pub(in crate::models::exchange) async fn evaluate_liquidity_eager(
     // Find the first SunSwap meta via the generic helper — no clone, no reconstruction.
     let Some(meta) = find_meta(assets, |p| match p {
         ExchangeProvider::SunSwap(m) => Some(m),
-        _ => None,
+        ExchangeProvider::Relay(_)
+        | ExchangeProvider::Uniswap(_)
+        | ExchangeProvider::PancakeSwap(_)
+        | ExchangeProvider::PlunderSwap(_)
+        | ExchangeProvider::ZilSwap(_)
+        | ExchangeProvider::CowSwap(_) => None,
     }) else {
         return Vec::new();
     };

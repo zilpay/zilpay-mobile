@@ -325,6 +325,38 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exchangeConfirmHintPreparing => '準備中…';
 
   @override
+  String get exchangeConfirmServiceFee => 'サービス手数料';
+
+  @override
+  String get exchangeConfirmOrderUid => '注文 UID';
+
+  @override
+  String get exchangeConfirmOrderStatus => 'ステータス';
+
+  @override
+  String get exchangeConfirmOrderExpiresIn => '有効期限';
+
+  @override
+  String get exchangeConfirmOrderCancelling => 'キャンセル中…';
+
+  @override
+  String get exchangeConfirmOrderCancel => '注文をキャンセル';
+
+  @override
+  String get exchangeConfirmOrderClose => '閉じる';
+
+  @override
+  String get exchangeConfirmOrderEthFlowNote => 'ネイティブトークンの注文は EthFlow 経由でオンチェーンに発注され、期限切れの場合は自動的に返金されます。';
+
+  @override
+  String get exchangeConfirmOrderCancelNote => 'オフチェーンでのキャンセルはベストエフォートであり、ソルバーがすでに注文を決済中の場合は失敗することがあります。';
+
+  @override
+  String exchangeConfirmOrderCancelFailed(String error) {
+    return 'キャンセルに失敗しました（ソルバーが決済中の可能性があります）: $error';
+  }
+
+  @override
   String exchangeHistoryApprove(String symbol) {
     return '$symbol を承認';
   }

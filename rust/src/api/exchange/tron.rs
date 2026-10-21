@@ -111,6 +111,7 @@ pub async fn finalize_tron_relay(
         btc: None,
         tron: Some(tron_info),
         solana: None,
+        cow_order: None,
     })
 }
 

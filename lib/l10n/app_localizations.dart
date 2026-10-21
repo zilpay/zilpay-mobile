@@ -707,6 +707,66 @@ abstract class AppLocalizations {
   /// **'Preparing…'**
   String get exchangeConfirmHintPreparing;
 
+  /// No description provided for @exchangeConfirmServiceFee.
+  ///
+  /// In en, this message translates to:
+  /// **'Service fee'**
+  String get exchangeConfirmServiceFee;
+
+  /// No description provided for @exchangeConfirmOrderUid.
+  ///
+  /// In en, this message translates to:
+  /// **'Order UID'**
+  String get exchangeConfirmOrderUid;
+
+  /// No description provided for @exchangeConfirmOrderStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get exchangeConfirmOrderStatus;
+
+  /// No description provided for @exchangeConfirmOrderExpiresIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires in'**
+  String get exchangeConfirmOrderExpiresIn;
+
+  /// No description provided for @exchangeConfirmOrderCancelling.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelling…'**
+  String get exchangeConfirmOrderCancelling;
+
+  /// No description provided for @exchangeConfirmOrderCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel Order'**
+  String get exchangeConfirmOrderCancel;
+
+  /// No description provided for @exchangeConfirmOrderClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get exchangeConfirmOrderClose;
+
+  /// No description provided for @exchangeConfirmOrderEthFlowNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Native-token orders are placed on-chain via EthFlow and refund automatically if expired.'**
+  String get exchangeConfirmOrderEthFlowNote;
+
+  /// No description provided for @exchangeConfirmOrderCancelNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Off-chain cancellation is best-effort and may fail if a solver is already settling your order.'**
+  String get exchangeConfirmOrderCancelNote;
+
+  /// No description provided for @exchangeConfirmOrderCancelFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancellation failed (solver may already be settling): {error}'**
+  String exchangeConfirmOrderCancelFailed(String error);
+
   /// No description provided for @exchangeHistoryApprove.
   ///
   /// In en, this message translates to:

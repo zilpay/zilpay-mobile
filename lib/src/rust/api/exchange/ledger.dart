@@ -5,6 +5,7 @@
 
 import '../../frb_generated.dart';
 import '../../models/exchange.dart';
+import '../../models/exchange/cowswap.dart';
 import '../../models/exchange/pancakeswap.dart';
 import '../../models/exchange/plunderswap.dart';
 import '../../models/exchange/relay.dart';

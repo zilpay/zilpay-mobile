@@ -68,6 +68,7 @@ extension ExchangeProviderPatterns on ExchangeProvider {
     TResult Function(ExchangeProvider_PlunderSwap value)? plunderSwap,
     TResult Function(ExchangeProvider_ZilSwap value)? zilSwap,
     TResult Function(ExchangeProvider_SunSwap value)? sunSwap,
+    TResult Function(ExchangeProvider_CowSwap value)? cowSwap,
     required TResult orElse(),
   }) {
     final _that = this;
@@ -84,6 +85,8 @@ extension ExchangeProviderPatterns on ExchangeProvider {
         return zilSwap(_that);
       case ExchangeProvider_SunSwap() when sunSwap != null:
         return sunSwap(_that);
+      case ExchangeProvider_CowSwap() when cowSwap != null:
+        return cowSwap(_that);
       case _:
         return orElse();
     }
@@ -110,6 +113,7 @@ extension ExchangeProviderPatterns on ExchangeProvider {
     required TResult Function(ExchangeProvider_PlunderSwap value) plunderSwap,
     required TResult Function(ExchangeProvider_ZilSwap value) zilSwap,
     required TResult Function(ExchangeProvider_SunSwap value) sunSwap,
+    required TResult Function(ExchangeProvider_CowSwap value) cowSwap,
   }) {
     final _that = this;
     switch (_that) {
@@ -125,6 +129,8 @@ extension ExchangeProviderPatterns on ExchangeProvider {
         return zilSwap(_that);
       case ExchangeProvider_SunSwap():
         return sunSwap(_that);
+      case ExchangeProvider_CowSwap():
+        return cowSwap(_that);
     }
   }
 
@@ -148,6 +154,7 @@ extension ExchangeProviderPatterns on ExchangeProvider {
     TResult? Function(ExchangeProvider_PlunderSwap value)? plunderSwap,
     TResult? Function(ExchangeProvider_ZilSwap value)? zilSwap,
     TResult? Function(ExchangeProvider_SunSwap value)? sunSwap,
+    TResult? Function(ExchangeProvider_CowSwap value)? cowSwap,
   }) {
     final _that = this;
     switch (_that) {
@@ -163,6 +170,8 @@ extension ExchangeProviderPatterns on ExchangeProvider {
         return zilSwap(_that);
       case ExchangeProvider_SunSwap() when sunSwap != null:
         return sunSwap(_that);
+      case ExchangeProvider_CowSwap() when cowSwap != null:
+        return cowSwap(_that);
       case _:
         return null;
     }
@@ -188,6 +197,7 @@ extension ExchangeProviderPatterns on ExchangeProvider {
     TResult Function(PlunderMeta field0)? plunderSwap,
     TResult Function(ZilSwapMeta field0)? zilSwap,
     TResult Function(SunSwapMeta field0)? sunSwap,
+    TResult Function(CowMeta field0)? cowSwap,
     required TResult orElse(),
   }) {
     final _that = this;
@@ -204,6 +214,8 @@ extension ExchangeProviderPatterns on ExchangeProvider {
         return zilSwap(_that.field0);
       case ExchangeProvider_SunSwap() when sunSwap != null:
         return sunSwap(_that.field0);
+      case ExchangeProvider_CowSwap() when cowSwap != null:
+        return cowSwap(_that.field0);
       case _:
         return orElse();
     }
@@ -230,6 +242,7 @@ extension ExchangeProviderPatterns on ExchangeProvider {
     required TResult Function(PlunderMeta field0) plunderSwap,
     required TResult Function(ZilSwapMeta field0) zilSwap,
     required TResult Function(SunSwapMeta field0) sunSwap,
+    required TResult Function(CowMeta field0) cowSwap,
   }) {
     final _that = this;
     switch (_that) {
@@ -245,6 +258,8 @@ extension ExchangeProviderPatterns on ExchangeProvider {
         return zilSwap(_that.field0);
       case ExchangeProvider_SunSwap():
         return sunSwap(_that.field0);
+      case ExchangeProvider_CowSwap():
+        return cowSwap(_that.field0);
     }
   }
 
@@ -268,6 +283,7 @@ extension ExchangeProviderPatterns on ExchangeProvider {
     TResult? Function(PlunderMeta field0)? plunderSwap,
     TResult? Function(ZilSwapMeta field0)? zilSwap,
     TResult? Function(SunSwapMeta field0)? sunSwap,
+    TResult? Function(CowMeta field0)? cowSwap,
   }) {
     final _that = this;
     switch (_that) {
@@ -283,6 +299,8 @@ extension ExchangeProviderPatterns on ExchangeProvider {
         return zilSwap(_that.field0);
       case ExchangeProvider_SunSwap() when sunSwap != null:
         return sunSwap(_that.field0);
+      case ExchangeProvider_CowSwap() when cowSwap != null:
+        return cowSwap(_that.field0);
       case _:
         return null;
     }
@@ -695,6 +713,74 @@ class _$ExchangeProvider_SunSwapCopyWithImpl<$Res>
           ? _self.field0
           : field0 // ignore: cast_nullable_to_non_nullable
               as SunSwapMeta,
+    ));
+  }
+}
+
+/// @nodoc
+
+class ExchangeProvider_CowSwap extends ExchangeProvider {
+  const ExchangeProvider_CowSwap(this.field0) : super._();
+
+  @override
+  final CowMeta field0;
+
+  /// Create a copy of ExchangeProvider
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  $ExchangeProvider_CowSwapCopyWith<ExchangeProvider_CowSwap> get copyWith =>
+      _$ExchangeProvider_CowSwapCopyWithImpl<ExchangeProvider_CowSwap>(
+          this, _$identity);
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is ExchangeProvider_CowSwap &&
+            (identical(other.field0, field0) || other.field0 == field0));
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(runtimeType, field0);
+  }
+
+  @override
+  String toString() {
+    return 'ExchangeProvider.cowSwap(field0: $field0)';
+  }
+}
+
+/// @nodoc
+abstract mixin class $ExchangeProvider_CowSwapCopyWith<$Res>
+    implements $ExchangeProviderCopyWith<$Res> {
+  factory $ExchangeProvider_CowSwapCopyWith(ExchangeProvider_CowSwap value,
+          $Res Function(ExchangeProvider_CowSwap) _then) =
+      _$ExchangeProvider_CowSwapCopyWithImpl;
+  @useResult
+  $Res call({CowMeta field0});
+}
+
+/// @nodoc
+class _$ExchangeProvider_CowSwapCopyWithImpl<$Res>
+    implements $ExchangeProvider_CowSwapCopyWith<$Res> {
+  _$ExchangeProvider_CowSwapCopyWithImpl(this._self, this._then);
+
+  final ExchangeProvider_CowSwap _self;
+  final $Res Function(ExchangeProvider_CowSwap) _then;
+
+  /// Create a copy of ExchangeProvider
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  $Res call({
+    Object? field0 = null,
+  }) {
+    return _then(ExchangeProvider_CowSwap(
+      null == field0
+          ? _self.field0
+          : field0 // ignore: cast_nullable_to_non_nullable
+              as CowMeta,
     ));
   }
 }

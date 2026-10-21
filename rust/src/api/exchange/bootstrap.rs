@@ -10,7 +10,7 @@ use zilpay::wallet::bitcoin_wallet::BitcoinWallet;
 use zilpay::wallet::wallet_storage::StorageOperations;
 
 use crate::models::exchange::{
-    ExchangeAsset, ExchangeProvider, PancakeMeta, PlunderMeta, ProviderQuote, RelayMeta,
+    CowMeta, ExchangeAsset, ExchangeProvider, PancakeMeta, PlunderMeta, ProviderQuote, RelayMeta,
     SunSwapMeta, UniswapMeta, ZilSwapMeta,
 };
 use crate::utils::{
@@ -44,6 +44,7 @@ fn provider_names(providers: &HashSet<ExchangeProvider>) -> String {
             ExchangeProvider::PlunderSwap(_) => "PlunderSwap",
             ExchangeProvider::ZilSwap(_) => "ZilSwap",
             ExchangeProvider::SunSwap(_) => "SunSwap",
+            ExchangeProvider::CowSwap(_) => "CowSwap",
         })
         .collect();
     names.sort_unstable();
@@ -219,6 +220,17 @@ pub fn bootstrap_exchange_providers(
                 if let Some(meta) = SunSwapMeta::for_chain(chain_hash, chain_id, slip_44, account_addr)
                 {
                     providers.insert(ExchangeProvider::SunSwap(meta));
+                }
+            }
+
+            if addr_prefix == 1
+                && slip_44 != ZILLIQA
+                && crate::models::exchange::cowswap::is_supported_chain(chain_id)
+            {
+                if let Some(meta) =
+                    CowMeta::for_chain(chain_hash, chain_id, slip_44, account_addr)
+                {
+                    providers.insert(ExchangeProvider::CowSwap(meta));
                 }
             }
         }

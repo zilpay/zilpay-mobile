@@ -338,6 +338,23 @@
   "exchangeConfirmHintPermit": "Confirm permit on your Ledger…",
   "exchangeConfirmHintSwap": "Confirm swap on your Ledger…",
   "exchangeConfirmHintPreparing": "Preparing…",
+  "exchangeConfirmServiceFee": "Service fee",
+  "exchangeConfirmOrderUid": "Order UID",
+  "exchangeConfirmOrderStatus": "Status",
+  "exchangeConfirmOrderExpiresIn": "Expires in",
+  "exchangeConfirmOrderCancelling": "Cancelling…",
+  "exchangeConfirmOrderCancel": "Cancel Order",
+  "exchangeConfirmOrderClose": "Close",
+  "exchangeConfirmOrderEthFlowNote": "Native-token orders are placed on-chain via EthFlow and refund automatically if expired.",
+  "exchangeConfirmOrderCancelNote": "Off-chain cancellation is best-effort and may fail if a solver is already settling your order.",
+  "exchangeConfirmOrderCancelFailed": "Cancellation failed (solver may already be settling): {error}",
+  "@exchangeConfirmOrderCancelFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "exchangeHistoryApprove": "Approve {symbol}",
   "@exchangeHistoryApprove": {
     "placeholders": {

@@ -231,6 +231,7 @@ fn lift_with_metadata(
         btc: None,
         tron: Some(tron_info),
         solana: None,
+        cow_order: None,
     })
 }
 

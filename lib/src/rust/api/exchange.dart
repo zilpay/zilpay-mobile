@@ -5,6 +5,7 @@
 
 import '../frb_generated.dart';
 import '../models/exchange.dart';
+import '../models/exchange/cowswap.dart';
 import '../models/exchange/pancakeswap.dart';
 import '../models/exchange/plunderswap.dart';
 import '../models/exchange/relay.dart';
@@ -18,6 +19,38 @@ import '../models/transactions/solana.dart';
 import '../models/transactions/transaction_metadata.dart';
 import '../models/transactions/tron.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+
+Future<String> getCowOrderStatus(
+        {required String orderbookUrl, required String uid}) =>
+    RustLib.instance.api.crateApiExchangeGetCowOrderStatus(
+        orderbookUrl: orderbookUrl, uid: uid);
+
+String prepareCowOrderCancellation(
+        {required BigInt chainId,
+        required String settlement,
+        required String orderUid}) =>
+    RustLib.instance.api.crateApiExchangePrepareCowOrderCancellation(
+        chainId: chainId, settlement: settlement, orderUid: orderUid);
+
+Future<void> submitCowOrderCancellation(
+        {required String orderbookUrl,
+        required String uid,
+        required String signature}) =>
+    RustLib.instance.api.crateApiExchangeSubmitCowOrderCancellation(
+        orderbookUrl: orderbookUrl, uid: uid, signature: signature);
+
+Future<void> cancelCowOrderSoftware(
+        {required SwapAuth auth,
+        required BigInt chainId,
+        required String settlement,
+        required String orderbookUrl,
+        required String uid}) =>
+    RustLib.instance.api.crateApiExchangeCancelCowOrderSoftware(
+        auth: auth,
+        chainId: chainId,
+        settlement: settlement,
+        orderbookUrl: orderbookUrl,
+        uid: uid);
 
 Stream<String> executeExchangeSwap(
         {required SwapAuth auth,

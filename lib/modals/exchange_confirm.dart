@@ -22,6 +22,7 @@ import 'package:bearby/src/rust/api/transaction.dart';
 import 'package:bearby/src/rust/models/exchange.dart';
 import 'package:bearby/src/rust/models/ftoken.dart';
 import 'package:bearby/src/rust/models/transactions/base_token.dart';
+import 'package:bearby/src/rust/models/transactions/request.dart';
 import 'package:bearby/state/app_state.dart';
 import 'package:bearby/state/exchange_state.dart';
 import 'package:bearby/theme/app_theme.dart';
@@ -131,6 +132,13 @@ class _ExchangeConfirmContentState extends State<_ExchangeConfirmContent> {
   bool _obscurePassword = true;
   String? _error;
 
+  CowOrderInfo? _activeCowOrder;
+  String _cowOrderStatus = 'open';
+  int _cowRemainingSecs = 0;
+  bool _cancellingCowOrder = false;
+  Timer? _cowPollTimer;
+  Timer? _cowCountdownTimer;
+
   String _errorFor(AppLocalizations l10n, Object error) {
     final activeStep =
         _plan.where((s) => _stepStates[s] == _StepState.active).firstOrNull;
@@ -162,6 +170,7 @@ class _ExchangeConfirmContentState extends State<_ExchangeConfirmContent> {
         plunderSwap: (_) => false,
         zilSwap: (_) => false,
         sunSwap: (_) => false,
+        cowSwap: (_) => false,
       );
 
   // Derived from the two assets — no stored duplication.
@@ -222,6 +231,7 @@ class _ExchangeConfirmContentState extends State<_ExchangeConfirmContent> {
   @override
   void dispose() {
     _swapSub?.cancel();
+    _stopCowOrderTimers();
     _passwordController.dispose();
     if (_isLedger && context.mounted) {
       context.read<AppState>().ledgerViewController.stopScan();
@@ -395,6 +405,13 @@ class _ExchangeConfirmContentState extends State<_ExchangeConfirmContent> {
         nonce: nonce,
         display: disp,
       );
+      if (tx.evm == null &&
+          tx.scilla == null &&
+          tx.tron == null &&
+          tx.btc == null &&
+          tx.solana == null) {
+        return;
+      }
       final gas = await caclGasFee(
         params: tx,
         walletIndex: appState.selectedWalletIndex,
@@ -476,6 +493,18 @@ class _ExchangeConfirmContentState extends State<_ExchangeConfirmContent> {
           finishWithError(step.substring(errorPrefix.length));
           return;
         }
+        const cowOrderPrefix = 'cow_order:';
+        if (step.startsWith(cowOrderPrefix)) {
+          final parts = step.substring(cowOrderPrefix.length).split('|');
+          if (parts.length >= 3) {
+            _activeCowOrder = CowOrderInfo(
+              uid: parts[0],
+              orderbookUrl: parts[1],
+              validTo: int.tryParse(parts[2]) ?? 0,
+            );
+          }
+          return;
+        }
         if (step == 'done') receivedDone = true;
         _onStage(step);
       },
@@ -485,6 +514,11 @@ class _ExchangeConfirmContentState extends State<_ExchangeConfirmContent> {
         if (failed) return;
         if (!receivedDone) {
           finishWithError(l10n.exchangeConfirmUnable);
+          return;
+        }
+        final cowOrder = _activeCowOrder;
+        if (cowOrder != null) {
+          _startCowOrderTracking(appState, cowOrder);
           return;
         }
         _completeAndExit(appState);
@@ -600,21 +634,33 @@ class _ExchangeConfirmContentState extends State<_ExchangeConfirmContent> {
         nonce: swapNonce,
         display: disp,
       );
-      final swapSig = await ledger.signTransaction(
-        transaction: swapTx,
-        walletIndex: walletIndexInt,
-        accountIndex: accountIndexInt,
-        account: account,
-      );
-      await sendSignedTransactions(
-        tx: swapTx,
-        sig: swapSig,
-        walletIndex: walletIndexInt,
-        accountIndex: accountIndexInt,
-      );
+      final hasOnchainTx = swapTx.evm != null ||
+          swapTx.scilla != null ||
+          swapTx.tron != null ||
+          swapTx.btc != null ||
+          swapTx.solana != null;
+      if (hasOnchainTx) {
+        final swapSig = await ledger.signTransaction(
+          transaction: swapTx,
+          walletIndex: walletIndexInt,
+          accountIndex: accountIndexInt,
+          account: account,
+        );
+        await sendSignedTransactions(
+          tx: swapTx,
+          sig: swapSig,
+          walletIndex: walletIndexInt,
+          accountIndex: accountIndexInt,
+        );
+      }
 
       _onStage('done');
-      await _completeAndExit(appState);
+      final cowOrder = swapTx.cowOrder;
+      if (cowOrder != null) {
+        _startCowOrderTracking(appState, cowOrder);
+      } else {
+        await _completeAndExit(appState);
+      }
     } catch (e) {
       if (mounted) setState(() => _error = _errorFor(l10n, e));
     } finally {
@@ -626,6 +672,153 @@ class _ExchangeConfirmContentState extends State<_ExchangeConfirmContent> {
     final appState = context.read<AppState>();
     await appState.ledgerViewController.open(device);
     if (mounted) setState(() {});
+  }
+
+  // -------------------------------------------------------------------------
+  // CoW Protocol open-order tracking & off-chain cancellation
+  // -------------------------------------------------------------------------
+
+  void _stopCowOrderTimers() {
+    _cowPollTimer?.cancel();
+    _cowPollTimer = null;
+    _cowCountdownTimer?.cancel();
+    _cowCountdownTimer = null;
+  }
+
+  void _startCowOrderTracking(AppState appState, CowOrderInfo order) {
+    _stopCowOrderTimers();
+    final nowSecs = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final remaining = (order.validTo - nowSecs).clamp(0, 86400);
+    if (mounted) {
+      setState(() {
+        _activeCowOrder = order;
+        _cowOrderStatus = _isNativeIn ? 'indexing' : 'open';
+        _cowRemainingSecs = remaining;
+        _loading = false;
+      });
+    }
+
+    _cowCountdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      final curNow = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      final left = (order.validTo - curNow).clamp(0, 86400);
+      setState(() => _cowRemainingSecs = left);
+    });
+
+    Future<void> pollOnce() async {
+      try {
+        final status = await getCowOrderStatus(
+          orderbookUrl: order.orderbookUrl,
+          uid: order.uid,
+        );
+        if (!mounted) return;
+        setState(() => _cowOrderStatus = status);
+        if (status == 'fulfilled') {
+          _stopCowOrderTimers();
+          await _completeAndExit(appState);
+        } else if (status == 'cancelled' || status == 'expired') {
+          _stopCowOrderTimers();
+        }
+      } catch (e) {
+        debugPrint('[cowswap] order status poll failed: $e');
+      }
+    }
+
+    unawaited(pollOnce());
+    _cowPollTimer = Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => unawaited(pollOnce()),
+    );
+  }
+
+  Future<void> _cancelCowOrder(
+    AppState appState,
+    AppLocalizations l10n,
+    CowOrderInfo order,
+  ) async {
+    final selected = _selectedProvider;
+    final wallet = appState.wallet;
+    if (selected == null || wallet == null) {
+      if (mounted) {
+        setState(() => _error = l10n.exchangeConfirmNoAccount);
+      }
+      return;
+    }
+
+    final cowMeta = selected.whenOrNull(cowSwap: (m) => m);
+    if (cowMeta == null) {
+      if (mounted) {
+        setState(() => _error = l10n.exchangeConfirmUnable);
+      }
+      return;
+    }
+
+    setState(() {
+      _cancellingCowOrder = true;
+      _error = null;
+    });
+
+    try {
+      if (_isLedger) {
+        final account = appState.account;
+        if (account == null) {
+          if (mounted) {
+            setState(() => _error = l10n.exchangeConfirmNoAccount);
+          }
+          return;
+        }
+        final typedJson = prepareCowOrderCancellation(
+          chainId: cowMeta.common.chainId,
+          settlement: cowMeta.settlement,
+          orderUid: order.uid,
+        );
+        final sig = await appState.ledgerViewController.signEIP712HashedMessage(
+          typedData: TypedDataEip712.fromJsonString(typedJson),
+          account: account,
+          slip44: kEthereumSlip44,
+        );
+        final prefixedSig = sig.startsWith('0x') ? sig : '0x$sig';
+        await submitCowOrderCancellation(
+          orderbookUrl: order.orderbookUrl,
+          uid: order.uid,
+          signature: prefixedSig,
+        );
+      } else {
+        final auth = SwapAuth(
+          walletIndex: appState.selectedWalletIndex,
+          accountIndex: wallet.selectedAccount,
+          password: wallet.authType == 'none' ? _passwordController.text : null,
+        );
+        await cancelCowOrderSoftware(
+          auth: auth,
+          chainId: cowMeta.common.chainId,
+          settlement: cowMeta.settlement,
+          orderbookUrl: order.orderbookUrl,
+          uid: order.uid,
+        );
+      }
+      _stopCowOrderTimers();
+      if (mounted) {
+        setState(() => _cowOrderStatus = 'cancelled');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(
+          () => _error =
+              l10n.exchangeConfirmOrderCancelFailed(_errorFor(l10n, e)),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _cancellingCowOrder = false);
+      }
+    }
+  }
+
+  String _formatCountdown(int secs) {
+    final mins = secs ~/ 60;
+    final rem = secs % 60;
+    return '${mins.toString().padLeft(2, '0')}:${rem.toString().padLeft(2, '0')}';
   }
 
   // -------------------------------------------------------------------------
@@ -874,6 +1067,15 @@ class _ExchangeConfirmContentState extends State<_ExchangeConfirmContent> {
             style: theme.bodyText1.copyWith(color: theme.textPrimary),
           ),
         ),
+        if (!_isWrapUnwrap)
+          _metaRow(
+            theme,
+            l10n.exchangeConfirmServiceFee,
+            Text(
+              '1%',
+              style: theme.bodyText1.copyWith(color: theme.textPrimary),
+            ),
+          ),
         _metaRow(
           theme,
           l10n.exchangeConfirmRecipient,
@@ -883,6 +1085,114 @@ class _ExchangeConfirmContentState extends State<_ExchangeConfirmContent> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCowOrderView(
+    AppState appState,
+    AppTheme theme,
+    AppLocalizations l10n,
+    CowOrderInfo order,
+  ) {
+    final isTerminal = _cowOrderStatus == 'fulfilled' ||
+        _cowOrderStatus == 'cancelled' ||
+        _cowOrderStatus == 'expired';
+    final canCancelOffchain = !_isNativeIn && !isTerminal;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: theme.modalBorder, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _metaRow(
+            theme,
+            l10n.exchangeConfirmOrderUid,
+            Text(
+              shortenAddress(order.uid),
+              style: theme.bodyText1.copyWith(color: theme.textPrimary),
+            ),
+          ),
+          _metaRow(
+            theme,
+            l10n.exchangeConfirmOrderStatus,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (!isTerminal) ...[
+                  SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.6,
+                      color: theme.primaryPurple,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  _cowOrderStatus.toUpperCase(),
+                  style: theme.bodyText1.copyWith(
+                    color: _cowOrderStatus == 'fulfilled'
+                        ? theme.success
+                        : theme.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (!isTerminal)
+            _metaRow(
+              theme,
+              l10n.exchangeConfirmOrderExpiresIn,
+              Text(
+                _formatCountdown(_cowRemainingSecs),
+                style: theme.bodyText1.copyWith(color: theme.textPrimary),
+              ),
+            ),
+          const SizedBox(height: 8),
+          Text(
+            _isNativeIn
+                ? l10n.exchangeConfirmOrderEthFlowNote
+                : l10n.exchangeConfirmOrderCancelNote,
+            style: theme.labelSmall.copyWith(color: theme.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              if (canCancelOffchain) ...[
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _cancellingCowOrder
+                        ? null
+                        : () => _cancelCowOrder(appState, l10n, order),
+                    child: Text(
+                      _cancellingCowOrder
+                          ? l10n.exchangeConfirmOrderCancelling
+                          : l10n.exchangeConfirmOrderCancel,
+                      style: theme.bodyText2.copyWith(color: theme.textPrimary),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+              ],
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => _completeAndExit(appState),
+                  child: Text(
+                    l10n.exchangeConfirmOrderClose,
+                    style: theme.bodyText2.copyWith(color: theme.textPrimary),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -982,7 +1292,17 @@ class _ExchangeConfirmContentState extends State<_ExchangeConfirmContent> {
                         width: double.infinity,
                         child: _buildMeta(theme, l10n),
                       ),
-                      if (needsPassword) ...[
+                      if (_activeCowOrder != null)
+                        SizedBox(
+                          width: double.infinity,
+                          child: _buildCowOrderView(
+                            appState,
+                            theme,
+                            l10n,
+                            _activeCowOrder!,
+                          ),
+                        ),
+                      if (needsPassword && _activeCowOrder == null) ...[
                         const SizedBox(height: 12),
                         SmartInput(
                           controller: _passwordController,
@@ -1000,20 +1320,22 @@ class _ExchangeConfirmContentState extends State<_ExchangeConfirmContent> {
                           textColor: theme.textSecondary,
                         ),
                       ],
-                      const SizedBox(height: 16),
-                      SwipeButton(
-                        text: currentError != null
-                            ? l10n.exchangeConfirmUnable
-                            : l10n.exchangeConfirmSwipe,
-                        disabled: _loading || ledgerNotReady,
-                        onSwipeComplete: () async {
-                          if (_isLedger) {
-                            await _confirmLedger(appState);
-                          } else {
-                            await _confirmSoftware(appState);
-                          }
-                        },
-                      ),
+                      if (_activeCowOrder == null) ...[
+                        const SizedBox(height: 16),
+                        SwipeButton(
+                          text: currentError != null
+                              ? l10n.exchangeConfirmUnable
+                              : l10n.exchangeConfirmSwipe,
+                          disabled: _loading || ledgerNotReady,
+                          onSwipeComplete: () async {
+                            if (_isLedger) {
+                              await _confirmLedger(appState);
+                            } else {
+                              await _confirmSoftware(appState);
+                            }
+                          },
+                        ),
+                      ],
                       SizedBox(
                         height: MediaQuery.viewInsetsOf(context).bottom > 0
                             ? 16

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 pub use zilpay::background::bg_worker::{JobMessage, WorkerManager};
 use zilpay::background::bg_storage::StorageManagement;
@@ -24,8 +24,10 @@ use crate::{
     },
 };
 
+static INIT_CRYPTO: OnceLock<Result<(), String>> = OnceLock::new();
+
 pub async fn load_service(path: &str) -> Result<BackgroundState, String> {
-    zilpay::init()?; // init pq ssl
+    INIT_CRYPTO.get_or_init(zilpay::init).clone()?; // init pq ssl
     let mut guard = BACKGROUND_SERVICE.write().await;
     if guard.is_none() {
         let core = Background::from_storage_path(path).map_err(ServiceError::BackgroundError)?;

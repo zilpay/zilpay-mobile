@@ -325,6 +325,38 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exchangeConfirmHintPreparing => '准备中…';
 
   @override
+  String get exchangeConfirmServiceFee => '服务费';
+
+  @override
+  String get exchangeConfirmOrderUid => '订单 UID';
+
+  @override
+  String get exchangeConfirmOrderStatus => '状态';
+
+  @override
+  String get exchangeConfirmOrderExpiresIn => '剩余时间';
+
+  @override
+  String get exchangeConfirmOrderCancelling => '取消中…';
+
+  @override
+  String get exchangeConfirmOrderCancel => '取消订单';
+
+  @override
+  String get exchangeConfirmOrderClose => '关闭';
+
+  @override
+  String get exchangeConfirmOrderEthFlowNote => '原生代币订单通过 EthFlow 在链上提交，若过期将自动退款。';
+
+  @override
+  String get exchangeConfirmOrderCancelNote => '链下取消尽力而为，若求解器已在结算您的订单，取消可能会失败。';
+
+  @override
+  String exchangeConfirmOrderCancelFailed(String error) {
+    return '取消失败（求解器可能已在结算）：$error';
+  }
+
+  @override
   String exchangeHistoryApprove(String symbol) {
     return '授权 $symbol';
   }
