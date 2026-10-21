@@ -575,6 +575,54 @@ abstract class AppLocalizations {
   /// **'No swappable assets on this network'**
   String get exchangePageNoAssets;
 
+  /// No description provided for @exchangePagePay.
+  ///
+  /// In en, this message translates to:
+  /// **'You pay'**
+  String get exchangePagePay;
+
+  /// No description provided for @exchangePageSelectToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Select token'**
+  String get exchangePageSelectToken;
+
+  /// No description provided for @exchangePageEnterAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter amount'**
+  String get exchangePageEnterAmount;
+
+  /// No description provided for @exchangePageInsufficientBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Insufficient {symbol}'**
+  String exchangePageInsufficientBalance(String symbol);
+
+  /// No description provided for @exchangePageNoRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'No route found'**
+  String get exchangePageNoRoute;
+
+  /// No description provided for @exchangePageFindingRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding best price…'**
+  String get exchangePageFindingRoute;
+
+  /// No description provided for @exchangePageRouteVia.
+  ///
+  /// In en, this message translates to:
+  /// **'via {provider}'**
+  String exchangePageRouteVia(String provider);
+
+  /// No description provided for @exchangePageSlippage.
+  ///
+  /// In en, this message translates to:
+  /// **'{value}% slippage'**
+  String exchangePageSlippage(String value);
+
   /// No description provided for @exchangePageTabSwap.
   ///
   /// In en, this message translates to:

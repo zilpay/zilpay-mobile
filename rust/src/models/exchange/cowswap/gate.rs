@@ -43,18 +43,18 @@ mod tests {
     use super::*;
     use crate::models::exchange::cowswap::CowMeta;
     use crate::models::ftoken::FTokenInfo;
-    use std::collections::{HashMap, HashSet};
+    use std::collections::HashMap;
     use zilpay::tokio;
 
     fn dummy_asset(chain_id: u64, addr: &str, native: bool, addr_type: u8) -> ExchangeAsset {
-        let mut providers = HashSet::new();
+        let mut providers = Vec::new();
         if let Some(meta) = CowMeta::for_chain(
             1,
             chain_id,
             60,
             "0x0000000000000000000000000000000000000001",
         ) {
-            providers.insert(ExchangeProvider::CowSwap(meta));
+            providers.push(ExchangeProvider::CowSwap(meta));
         }
         ExchangeAsset {
             token: FTokenInfo {

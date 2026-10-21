@@ -4996,12 +4996,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  Set<ExchangeProvider> dco_decode_Set_exchange_provider_None(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return Set.from(dco_decode_list_exchange_provider(raw));
-  }
-
-  @protected
   RustStreamSink<String> dco_decode_StreamSink_String_Sse(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     throw UnimplementedError();
@@ -5666,7 +5660,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return ExchangeAsset(
       token: dco_decode_f_token_info(arr[0]),
-      providers: dco_decode_Set_exchange_provider_None(arr[1]),
+      providers: dco_decode_list_exchange_provider(arr[1]),
       halted: dco_decode_bool(arr[2]),
     );
   }
@@ -7452,14 +7446,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  Set<ExchangeProvider> sse_decode_Set_exchange_provider_None(
-      SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var inner = sse_decode_list_exchange_provider(deserializer);
-    return Set.from(inner);
-  }
-
-  @protected
   RustStreamSink<String> sse_decode_StreamSink_String_Sse(
       SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
@@ -8135,7 +8121,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ExchangeAsset sse_decode_exchange_asset(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_token = sse_decode_f_token_info(deserializer);
-    var var_providers = sse_decode_Set_exchange_provider_None(deserializer);
+    var var_providers = sse_decode_list_exchange_provider(deserializer);
     var var_halted = sse_decode_bool(deserializer);
     return ExchangeAsset(
         token: var_token, providers: var_providers, halted: var_halted);
@@ -10282,13 +10268,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_Set_exchange_provider_None(
-      Set<ExchangeProvider> self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_list_exchange_provider(self.toList(), serializer);
-  }
-
-  @protected
   void sse_encode_StreamSink_String_Sse(
       RustStreamSink<String> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
@@ -10875,7 +10854,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_exchange_asset(ExchangeAsset self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_f_token_info(self.token, serializer);
-    sse_encode_Set_exchange_provider_None(self.providers, serializer);
+    sse_encode_list_exchange_provider(self.providers, serializer);
     sse_encode_bool(self.halted, serializer);
   }
 

@@ -9,7 +9,6 @@ pub mod univ_router;
 pub mod zilswap;
 
 use std::borrow::Cow;
-use std::collections::HashSet;
 use std::str::FromStr;
 
 use flutter_rust_bridge::frb;
@@ -614,7 +613,7 @@ pub(crate) enum EagerGate {
 #[derive(Debug, Clone)]
 pub struct ExchangeAsset {
     pub token: FTokenInfo,
-    pub providers: HashSet<ExchangeProvider>,
+    pub providers: Vec<ExchangeProvider>,
     pub halted: bool,
 }
 

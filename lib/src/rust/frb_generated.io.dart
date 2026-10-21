@@ -115,9 +115,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
           dynamic raw);
 
   @protected
-  Set<ExchangeProvider> dco_decode_Set_exchange_provider_None(dynamic raw);
-
-  @protected
   RustStreamSink<String> dco_decode_StreamSink_String_Sse(dynamic raw);
 
   @protected
@@ -868,10 +865,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   LocalStorageImpl
       sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageImpl(
           SseDeserializer deserializer);
-
-  @protected
-  Set<ExchangeProvider> sse_decode_Set_exchange_provider_None(
-      SseDeserializer deserializer);
 
   @protected
   RustStreamSink<String> sse_decode_StreamSink_String_Sse(
@@ -1706,10 +1699,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
       sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalStorageImpl(
           LocalStorageImpl self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_Set_exchange_provider_None(
-      Set<ExchangeProvider> self, SseSerializer serializer);
 
   @protected
   void sse_encode_StreamSink_String_Sse(

@@ -1,4 +1,5 @@
-use std::collections::{HashMap, HashSet};
+use std::cmp::Ordering;
+use std::collections::HashMap;
 
 use flutter_rust_bridge::frb;
 use zilpay::background::bg_provider::ProvidersManagement;
@@ -34,7 +35,7 @@ fn zilliqa_token_matches_mode(slip_44: u32, addr_prefix: u8, zil_evm_mode: bool)
     slip_44 != ZILLIQA || addr_prefix == zilliqa_mode_addr_type(zil_evm_mode)
 }
 
-fn provider_names(providers: &HashSet<ExchangeProvider>) -> String {
+fn provider_names(providers: &[ExchangeProvider]) -> String {
     let mut names: Vec<&str> = providers
         .iter()
         .map(|provider| match provider {
@@ -49,6 +50,28 @@ fn provider_names(providers: &HashSet<ExchangeProvider>) -> String {
         .collect();
     names.sort_unstable();
     names.join(",")
+}
+
+/// Deterministic asset order: active chain first, then chains in configured order; within a
+/// chain the native coin first, then alphabetically by symbol (address breaks ties).
+fn compare_assets(
+    a: &ExchangeAsset,
+    b: &ExchangeAsset,
+    active_chain_hash: u64,
+    chain_rank: &HashMap<u64, usize>,
+) -> Ordering {
+    let key = |asset: &ExchangeAsset| {
+        let token = &asset.token;
+        (
+            token.chain_hash != active_chain_hash,
+            chain_rank.get(&token.chain_hash).copied().unwrap_or(usize::MAX),
+            !token.native,
+        )
+    };
+    key(a)
+        .cmp(&key(b))
+        .then_with(|| a.token.symbol.to_lowercase().cmp(&b.token.symbol.to_lowercase()))
+        .then_with(|| a.token.addr.cmp(&b.token.addr))
 }
 
 #[frb(sync)]
@@ -150,6 +173,14 @@ pub fn bootstrap_exchange_providers(
         .map(|p| p.config.ftokens.len())
         .sum();
 
+    // Position of each chain in the configured provider list; drives the stable cross-chain order.
+    let chain_rank: HashMap<u64, usize> = all_providers
+        .iter()
+        .filter(|p| chain_matches_network(&p.config, current_is_testnet))
+        .enumerate()
+        .map(|(rank, p)| (p.config.hash(), rank))
+        .collect();
+
     let chain_meta: HashMap<u64, (u32, u64)> = all_providers
         .iter()
         .filter(|p| chain_matches_network(&p.config, current_is_testnet))
@@ -160,9 +191,9 @@ pub fn bootstrap_exchange_providers(
                           slip_44: u32,
                           chain_id: u64,
                           chain_hash: u64|
-     -> HashSet<ExchangeProvider> {
+     -> Vec<ExchangeProvider> {
         let account_addr = relay_accounts.get(&slip_44);
-        let mut providers = HashSet::with_capacity(6);
+        let mut providers = Vec::with_capacity(7);
 
         if let Some(account_addr) = account_addr {
             if addr_prefix == 1
@@ -172,7 +203,7 @@ pub fn bootstrap_exchange_providers(
                 if let Some(meta) =
                     UniswapMeta::for_chain(chain_hash, chain_id, slip_44, account_addr)
                 {
-                    providers.insert(ExchangeProvider::Uniswap(meta));
+                    providers.push(ExchangeProvider::Uniswap(meta));
                 }
             }
 
@@ -183,7 +214,7 @@ pub fn bootstrap_exchange_providers(
                 if let Some(meta) =
                     PancakeMeta::for_chain(chain_hash, chain_id, slip_44, account_addr)
                 {
-                    providers.insert(ExchangeProvider::PancakeSwap(meta));
+                    providers.push(ExchangeProvider::PancakeSwap(meta));
                 }
             }
 
@@ -193,14 +224,14 @@ pub fn bootstrap_exchange_providers(
                 chain_id,
                 account_addr,
             ) {
-                providers.insert(ExchangeProvider::Relay(meta));
+                providers.push(ExchangeProvider::Relay(meta));
             }
 
             if addr_prefix == 0 && slip_44 == ZILLIQA {
                 if let Some(meta) =
                     ZilSwapMeta::for_chain(chain_hash, chain_id, slip_44, account_addr)
                 {
-                    providers.insert(ExchangeProvider::ZilSwap(meta));
+                    providers.push(ExchangeProvider::ZilSwap(meta));
                 }
             }
 
@@ -210,7 +241,7 @@ pub fn bootstrap_exchange_providers(
                         if let Some(meta) =
                             PlunderMeta::for_chain(chain_hash, chain_id, slip_44, evm_addr)
                         {
-                            providers.insert(ExchangeProvider::PlunderSwap(meta));
+                            providers.push(ExchangeProvider::PlunderSwap(meta));
                         }
                     }
                 }
@@ -219,7 +250,7 @@ pub fn bootstrap_exchange_providers(
             if addr_prefix == 4 && slip_44 == TRON {
                 if let Some(meta) = SunSwapMeta::for_chain(chain_hash, chain_id, slip_44, account_addr)
                 {
-                    providers.insert(ExchangeProvider::SunSwap(meta));
+                    providers.push(ExchangeProvider::SunSwap(meta));
                 }
             }
 
@@ -230,7 +261,7 @@ pub fn bootstrap_exchange_providers(
                 if let Some(meta) =
                     CowMeta::for_chain(chain_hash, chain_id, slip_44, account_addr)
                 {
-                    providers.insert(ExchangeProvider::CowSwap(meta));
+                    providers.push(ExchangeProvider::CowSwap(meta));
                 }
             }
         }
@@ -239,10 +270,10 @@ pub fn bootstrap_exchange_providers(
     };
 
     let resolve_halted =
-        |_providers: &HashSet<ExchangeProvider>, _slip_44: u32, _chain_id: u64| false;
+        |_providers: &[ExchangeProvider], _slip_44: u32, _chain_id: u64| false;
 
     let active_chain_hash = wallet_data.chain_hash;
-    let scope_providers = |providers: &mut HashSet<ExchangeProvider>, token_chain_hash: u64| {
+    let scope_providers = |providers: &mut Vec<ExchangeProvider>, token_chain_hash: u64| {
         if token_chain_hash != active_chain_hash {
             providers.retain(ExchangeProvider::is_bridge);
         }
@@ -357,10 +388,11 @@ pub fn bootstrap_exchange_providers(
         }
     }
 
-    let result: Vec<ExchangeAsset> = assets
+    let mut result: Vec<ExchangeAsset> = assets
         .into_values()
         .filter(|asset| !asset.providers.is_empty())
         .collect();
+    result.sort_by(|a, b| compare_assets(a, b, active_chain_hash, &chain_rank));
     eprintln!(
         "[exchange-bootstrap] complete assets={} skipped_mode_tokens={skipped_mode_tokens}",
         result.len()
@@ -397,8 +429,7 @@ pub async fn refresh_exchange_quotes(
             permit_typed_data_json: None,
             is_wrap_unwrap: true,
         };
-        let mut providers = HashSet::with_capacity(1);
-        providers.insert(provider.clone().with_quote(quote));
+        let providers = vec![provider.clone().with_quote(quote)];
         return Ok(ExchangeAsset {
             token: from.token,
             providers,
@@ -414,7 +445,7 @@ pub async fn refresh_exchange_quotes(
         .map(|provider| {
             let from_asset = ExchangeAsset {
                 token: from_token.clone(),
-                providers: HashSet::with_capacity(0),
+                providers: Vec::new(),
                 halted,
             };
             let to_asset = to.clone();
@@ -450,10 +481,10 @@ pub async fn refresh_exchange_quotes(
         })
         .collect();
 
-    let mut providers = HashSet::with_capacity(handles.len());
+    let mut providers = Vec::with_capacity(handles.len());
     for handle in handles {
         if let Ok(Some(provider)) = handle.await {
-            providers.insert(provider);
+            providers.push(provider);
         }
     }
 

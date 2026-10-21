@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 
@@ -142,6 +143,7 @@ class ExchangeState extends ChangeNotifier {
     required BigInt walletIndex,
     required BigInt accountIndex,
     required BigInt? activeChainHash,
+    required BigInt balanceKey,
     required ExchangeAsset? initialFrom,
   }) async {
     final gen = ++_bootstrapGen;
@@ -156,7 +158,7 @@ class ExchangeState extends ChangeNotifier {
         walletIndex: walletIndex,
         accountIndex: accountIndex,
       );
-      _publishAssets(candidates, activeChainHash);
+      _publishAssets(candidates, activeChainHash, balanceKey);
       _loadingAssets = false;
       notifyListeners();
       // Start polling immediately on candidates so the user sees an early quote before
@@ -172,7 +174,7 @@ class ExchangeState extends ChangeNotifier {
       if (!changed) {
         return; // no eager gate pruned anything → skip redundant republish + quote fetch
       }
-      _publishAssets(validated, activeChainHash);
+      _publishAssets(validated, activeChainHash, balanceKey);
       notifyListeners();
       // Restart with validated assets: a provider pruned in phase 2 may have been the
       // currently-polling from/to, so the poll must re-resolve the pair.
@@ -193,9 +195,13 @@ class ExchangeState extends ChangeNotifier {
   // an existing user selection across the phase 1 → phase 2 window: if the user picked a token
   // between phases, that selection is kept as long as the token survived validation (matched by
   // chain_hash+addr+addr_type — token identity, not volatile rate/balance state).
-  void _publishAssets(List<ExchangeAsset> all, BigInt? activeChainHash) {
-    final pay =
-        all.where((a) => a.token.chainHash == activeChainHash).toList();
+  void _publishAssets(
+    List<ExchangeAsset> unsorted,
+    BigInt? activeChainHash,
+    BigInt balanceKey,
+  ) {
+    final all = _sortAssets(unsorted, activeChainHash, balanceKey);
+    final pay = all.where((a) => a.token.chainHash == activeChainHash).toList();
     final prevFrom = _fromAsset;
     final prevTo = _toAsset;
     // Preserve the current selection if the token survived into the new set; otherwise fall back
@@ -217,6 +223,47 @@ class ExchangeState extends ChangeNotifier {
     // Preserve the "to" selection the same way; clear it only if it now equals "from".
     final to = _resolveSelection(prevTo, all);
     _toAsset = to == from ? null : to;
+  }
+
+  /// Orders assets for display: active chain first, other chains keep the Rust (configured)
+  /// order; within a chain the native coin first, then held tokens by fiat value (desc), then
+  /// held tokens without a rate, then the rest. Ties keep the incoming Rust order (stable).
+  static List<ExchangeAsset> _sortAssets(
+    List<ExchangeAsset> assets,
+    BigInt? activeChainHash,
+    BigInt balanceKey,
+  ) {
+    final chainOrder = <BigInt, int>{};
+    for (final asset in assets) {
+      chainOrder.putIfAbsent(asset.token.chainHash, () => chainOrder.length);
+    }
+    final ranked = [
+      for (var i = 0; i < assets.length; i++)
+        _RankedAsset(
+          asset: assets[i],
+          index: i,
+          chainGroup: assets[i].token.chainHash == activeChainHash
+              ? -1
+              : chainOrder[assets[i].token.chainHash] ?? chainOrder.length,
+          balance:
+              BigInt.tryParse(assets[i].token.balances[balanceKey] ?? '') ??
+                  BigInt.zero,
+        ),
+    ];
+    ranked.sort((a, b) {
+      final byChain = a.chainGroup.compareTo(b.chainGroup);
+      if (byChain != 0) return byChain;
+      final byNative =
+          (b.asset.token.native ? 1 : 0) - (a.asset.token.native ? 1 : 0);
+      if (byNative != 0) return byNative;
+      final byValue = b.fiatValue.compareTo(a.fiatValue);
+      if (byValue != 0) return byValue;
+      final byHeld =
+          (b.balance > BigInt.zero ? 1 : 0) - (a.balance > BigInt.zero ? 1 : 0);
+      if (byHeld != 0) return byHeld;
+      return a.index.compareTo(b.index);
+    });
+    return ranked.map((r) => r.asset).toList();
   }
 
   /// Look up `selection` in `pool` by token identity (chain_hash+addr+addr_type). Returns the
@@ -365,7 +412,7 @@ class ExchangeState extends ChangeNotifier {
 
     final cleared = ExchangeAsset(
       token: from.token,
-      providers: from.providers.map(_stripQuote).toSet(),
+      providers: from.providers.map(_stripQuote).toList(),
       halted: from.halted,
     );
 
@@ -429,4 +476,24 @@ class ExchangeState extends ChangeNotifier {
     _stopPolling();
     super.dispose();
   }
+}
+
+class _RankedAsset {
+  final ExchangeAsset asset;
+  final int index;
+  final int chainGroup;
+  final BigInt balance;
+
+  _RankedAsset({
+    required this.asset,
+    required this.index,
+    required this.chainGroup,
+    required this.balance,
+  });
+
+  late final double fiatValue = balance == BigInt.zero
+      ? 0
+      : balance.toDouble() /
+          math.pow(10, asset.token.decimals) *
+          asset.token.rate;
 }

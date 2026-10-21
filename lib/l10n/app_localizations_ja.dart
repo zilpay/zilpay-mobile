@@ -257,6 +257,36 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exchangePageNoAssets => 'このネットワークに交換可能な資産がありません';
 
   @override
+  String get exchangePagePay => '支払う';
+
+  @override
+  String get exchangePageSelectToken => 'トークンを選択';
+
+  @override
+  String get exchangePageEnterAmount => '金額を入力';
+
+  @override
+  String exchangePageInsufficientBalance(String symbol) {
+    return '$symbolが不足しています';
+  }
+
+  @override
+  String get exchangePageNoRoute => 'ルートが見つかりません';
+
+  @override
+  String get exchangePageFindingRoute => '最適な価格を検索中…';
+
+  @override
+  String exchangePageRouteVia(String provider) {
+    return '$provider経由';
+  }
+
+  @override
+  String exchangePageSlippage(String value) {
+    return 'スリッページ $value%';
+  }
+
+  @override
   String get exchangePageTabSwap => 'スワップ';
 
   @override

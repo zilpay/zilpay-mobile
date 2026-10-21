@@ -141,6 +141,36 @@ mod exchange_tests {
             }),
             "mainnet ETH wallet should expose a CowSwap provider"
         );
+
+        let first = assets.first().unwrap();
+        assert!(
+            first.token.native
+                && first.providers.iter().any(|p| p.common().chain_id == 1),
+            "active chain native coin (ETH) should be listed first"
+        );
+        let mut seen_chains: Vec<u64> = Vec::new();
+        for asset in &assets {
+            let hash = asset.token.chain_hash;
+            if seen_chains.last() != Some(&hash) {
+                assert!(
+                    !seen_chains.contains(&hash),
+                    "assets of one chain must be contiguous"
+                );
+                seen_chains.push(hash);
+            }
+        }
+        assert_eq!(
+            bootstrap_exchange_providers(0, 0)
+                .unwrap()
+                .iter()
+                .map(|a| (a.token.chain_hash, a.token.addr.clone()))
+                .collect::<Vec<_>>(),
+            assets
+                .iter()
+                .map(|a| (a.token.chain_hash, a.token.addr.clone()))
+                .collect::<Vec<_>>(),
+            "bootstrap order must be deterministic"
+        );
     }
 
     /// Live build via on-chain quoting: native ETH -> USDC on mainnet (no permit, one

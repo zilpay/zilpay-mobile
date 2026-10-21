@@ -18,7 +18,7 @@ part 'exchange.freezed.dart';
 
 class ExchangeAsset {
   final FTokenInfo token;
-  final Set<ExchangeProvider> providers;
+  final List<ExchangeProvider> providers;
   final bool halted;
 
   const ExchangeAsset({

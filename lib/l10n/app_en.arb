@@ -309,6 +309,35 @@
   "exchangePageRecipientTitle": "Select recipient",
   "exchangePageConfirm": "Swap",
   "exchangePageNoAssets": "No swappable assets on this network",
+  "exchangePagePay": "You pay",
+  "exchangePageSelectToken": "Select token",
+  "exchangePageEnterAmount": "Enter amount",
+  "exchangePageInsufficientBalance": "Insufficient {symbol}",
+  "@exchangePageInsufficientBalance": {
+    "placeholders": {
+      "symbol": {
+        "type": "String"
+      }
+    }
+  },
+  "exchangePageNoRoute": "No route found",
+  "exchangePageFindingRoute": "Finding best price…",
+  "exchangePageRouteVia": "via {provider}",
+  "@exchangePageRouteVia": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "exchangePageSlippage": "{value}% slippage",
+  "@exchangePageSlippage": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "exchangePageTabSwap": "Swap",
   "exchangeSettingsPriceProtection": "Price Protection",
   "exchangeSettingsReset": "Reset",

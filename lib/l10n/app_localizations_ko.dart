@@ -257,6 +257,36 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exchangePageNoAssets => '이 네트워크에서 교환 가능한 자산이 없습니다';
 
   @override
+  String get exchangePagePay => '지불 금액';
+
+  @override
+  String get exchangePageSelectToken => '토큰 선택';
+
+  @override
+  String get exchangePageEnterAmount => '금액 입력';
+
+  @override
+  String exchangePageInsufficientBalance(String symbol) {
+    return '$symbol 잔액 부족';
+  }
+
+  @override
+  String get exchangePageNoRoute => '경로를 찾을 수 없음';
+
+  @override
+  String get exchangePageFindingRoute => '최적 가격 검색 중…';
+
+  @override
+  String exchangePageRouteVia(String provider) {
+    return '$provider 경유';
+  }
+
+  @override
+  String exchangePageSlippage(String value) {
+    return '슬리피지 $value%';
+  }
+
+  @override
   String get exchangePageTabSwap => '스왑';
 
   @override

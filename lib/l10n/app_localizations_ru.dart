@@ -260,6 +260,36 @@ class AppLocalizationsRu extends AppLocalizations {
   String get exchangePageNoAssets => 'В этой сети нет активов для обмена';
 
   @override
+  String get exchangePagePay => 'Вы отдаёте';
+
+  @override
+  String get exchangePageSelectToken => 'Выберите токен';
+
+  @override
+  String get exchangePageEnterAmount => 'Введите сумму';
+
+  @override
+  String exchangePageInsufficientBalance(String symbol) {
+    return 'Недостаточно $symbol';
+  }
+
+  @override
+  String get exchangePageNoRoute => 'Маршрут не найден';
+
+  @override
+  String get exchangePageFindingRoute => 'Ищем лучшую цену…';
+
+  @override
+  String exchangePageRouteVia(String provider) {
+    return 'через $provider';
+  }
+
+  @override
+  String exchangePageSlippage(String value) {
+    return 'проскальзывание $value%';
+  }
+
+  @override
   String get exchangePageTabSwap => 'Обмен';
 
   @override

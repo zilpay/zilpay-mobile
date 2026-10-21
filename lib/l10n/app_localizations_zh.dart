@@ -257,6 +257,36 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exchangePageNoAssets => '此网络上没有可兑换的资产';
 
   @override
+  String get exchangePagePay => '支付';
+
+  @override
+  String get exchangePageSelectToken => '选择代币';
+
+  @override
+  String get exchangePageEnterAmount => '输入金额';
+
+  @override
+  String exchangePageInsufficientBalance(String symbol) {
+    return '$symbol 余额不足';
+  }
+
+  @override
+  String get exchangePageNoRoute => '未找到路由';
+
+  @override
+  String get exchangePageFindingRoute => '正在寻找最佳价格…';
+
+  @override
+  String exchangePageRouteVia(String provider) {
+    return '通过 $provider';
+  }
+
+  @override
+  String exchangePageSlippage(String value) {
+    return '滑点 $value%';
+  }
+
+  @override
   String get exchangePageTabSwap => '兑换';
 
   @override

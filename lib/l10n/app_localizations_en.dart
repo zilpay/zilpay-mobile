@@ -258,6 +258,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exchangePageNoAssets => 'No swappable assets on this network';
 
   @override
+  String get exchangePagePay => 'You pay';
+
+  @override
+  String get exchangePageSelectToken => 'Select token';
+
+  @override
+  String get exchangePageEnterAmount => 'Enter amount';
+
+  @override
+  String exchangePageInsufficientBalance(String symbol) {
+    return 'Insufficient $symbol';
+  }
+
+  @override
+  String get exchangePageNoRoute => 'No route found';
+
+  @override
+  String get exchangePageFindingRoute => 'Finding best price…';
+
+  @override
+  String exchangePageRouteVia(String provider) {
+    return 'via $provider';
+  }
+
+  @override
+  String exchangePageSlippage(String value) {
+    return '$value% slippage';
+  }
+
+  @override
   String get exchangePageTabSwap => 'Swap';
 
   @override

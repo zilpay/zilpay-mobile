@@ -14,7 +14,7 @@ import '../../models/exchange/uniswap.dart';
 import '../../models/ftoken.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `chain_matches_network`, `provider_names`, `zilliqa_mode_addr_type`, `zilliqa_token_matches_mode`
+// These functions are ignored because they are not marked as `pub`: `chain_matches_network`, `compare_assets`, `provider_names`, `zilliqa_mode_addr_type`, `zilliqa_token_matches_mode`
 
 List<ExchangeAsset> bootstrapExchangeProviders(
         {required BigInt walletIndex, required BigInt accountIndex}) =>

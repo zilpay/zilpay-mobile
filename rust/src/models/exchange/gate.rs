@@ -5,7 +5,6 @@
 //! provider-specific logic — it dispatches via [`EagerGate`] (exhaustive match, no dead arms) and
 //! strips via [`ExchangeProvider::eager_gate`] comparison (no discriminant, no per-variant match).
 
-use std::collections::HashSet;
 
 use flutter_rust_bridge::frb;
 use futures::future::join_all;
@@ -88,7 +87,7 @@ fn eager_gates_present(assets: &[ExchangeAsset]) -> Vec<EagerGate> {
 
 /// Remove every provider whose [`eager_gate`](ExchangeProvider::eager_gate) matches `gate`.
 /// No discriminant, no per-variant match — derived entirely from the single source of truth.
-fn strip_eager(providers: &mut HashSet<ExchangeProvider>, gate: EagerGate) {
+fn strip_eager(providers: &mut Vec<ExchangeProvider>, gate: EagerGate) {
     providers.retain(|p| p.eager_gate() != Some(gate));
 }
 

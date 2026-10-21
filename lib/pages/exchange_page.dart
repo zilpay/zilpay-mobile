@@ -2,6 +2,8 @@ import 'package:bearby/components/app_icon.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -26,6 +28,15 @@ import 'package:bearby/state/exchange_state.dart';
 import 'package:bearby/theme/app_theme.dart';
 import 'package:bearby/l10n/app_localizations.dart';
 
+/// Why the Swap button is disabled; `null` means the swap is ready.
+enum _SwapBlocker {
+  selectToken,
+  enterAmount,
+  insufficientBalance,
+  loading,
+  noRoute,
+}
+
 class ExchangePage extends StatefulWidget {
   const ExchangePage({super.key});
 
@@ -49,6 +60,7 @@ class _ExchangePageState extends State<ExchangePage> with StatusBarMixin {
   String? _recipientOverride;
   bool _firstFrameDone = false;
   bool _wasVisible = false;
+  double _flipTurns = 0;
 
   @override
   void initState() {
@@ -118,7 +130,7 @@ class _ExchangePageState extends State<ExchangePage> with StatusBarMixin {
         .where((t) => t.chainHash == chainHash && t.native)
         .firstOrNull;
     if (token == null) return null;
-    return ExchangeAsset(token: token, providers: const {}, halted: false);
+    return ExchangeAsset(token: token, providers: const [], halted: false);
   }
 
   Future<void> _bootstrap({ExchangeAsset? initialFrom}) {
@@ -128,10 +140,10 @@ class _ExchangePageState extends State<ExchangePage> with StatusBarMixin {
       walletIndex: walletIndex,
       accountIndex: _appState.wallet?.selectedAccount ?? BigInt.zero,
       activeChainHash: _appState.wallet?.chainHash,
+      balanceKey: _appState.accountBalanceKey,
       initialFrom: initialFrom ?? _nativeInitialAsset(),
     );
   }
-
 
   void _scheduleQuote() {
     _quoteTimer?.cancel();
@@ -203,33 +215,75 @@ class _ExchangePageState extends State<ExchangePage> with StatusBarMixin {
     _scheduleQuote();
   }
 
-  bool _canSwap(ExchangeState state) {
+  BigInt _balanceOf(ExchangeAsset asset) =>
+      BigInt.tryParse(
+          asset.token.balances[_appState.accountBalanceKey] ?? '') ??
+      BigInt.zero;
+
+  _SwapBlocker? _swapBlocker(ExchangeState state) {
     final from = state.fromAsset;
-    if (from == null ||
-        state.toAsset == null ||
-        state.selectedProvider == null) {
-      return false;
-    }
-    if (_amount.endsWith('.')) return false;
+    if (from == null || state.toAsset == null) return _SwapBlocker.selectToken;
+    if (_amount.endsWith('.')) return _SwapBlocker.enterAmount;
     final amountWei = toDecimalsWei(_amount, from.token.decimals);
-    if (amountWei <= BigInt.zero) return false;
-    final balance = BigInt.tryParse(
-            from.token.balances[_appState.accountBalanceKey] ?? '') ??
-        BigInt.zero;
-    return amountWei <= balance;
+    if (amountWei <= BigInt.zero) return _SwapBlocker.enterAmount;
+    if (amountWei > _balanceOf(from)) return _SwapBlocker.insufficientBalance;
+    if (state.selectedProvider == null) {
+      return state.quoteStatus == QuoteStatus.noRoute
+          ? _SwapBlocker.noRoute
+          : _SwapBlocker.loading;
+    }
+    return null;
+  }
+
+  String _swapLabel(
+      AppLocalizations l10n, _SwapBlocker? blocker, ExchangeAsset? from) {
+    return switch (blocker) {
+      null => l10n.exchangePageConfirm,
+      _SwapBlocker.selectToken => l10n.exchangePageSelectToken,
+      _SwapBlocker.enterAmount => l10n.exchangePageEnterAmount,
+      _SwapBlocker.insufficientBalance =>
+        l10n.exchangePageInsufficientBalance(from?.token.symbol ?? ''),
+      _SwapBlocker.loading => l10n.exchangePageFindingRoute,
+      _SwapBlocker.noRoute => l10n.exchangePageNoRoute,
+    };
+  }
+
+  void _openSettings(ExchangeState state) {
+    final provider = state.selectedProvider;
+    if (provider == null) return;
+    showSwapSettingsModal(
+      context: context,
+      activeProvider: provider,
+      exchangeState: state,
+    );
+  }
+
+  void _flip(ExchangeState state) {
+    final from = state.fromAsset;
+    final to = state.toAsset;
+    if (from == null || to == null) return;
+    HapticFeedback.selectionClick();
+    setState(() {
+      _flipTurns += 0.5;
+      _amount = '0';
+      _hasDecimalPoint = false;
+      _recipientOverride = null;
+    });
+    state.selectFrom(to);
+    state.selectTo(from);
   }
 
   void _handleSwap(ExchangeState state) {
-    if (!_canSwap(state)) return;
+    if (_swapBlocker(state) != null) return;
     final from = state.fromAsset;
     final to = state.toAsset;
     final provider = state.selectedProvider;
     if (from == null || to == null || provider == null) return;
 
-    final defaultRecipient = provider.common.accountAddr;
-    final destination = (provider.supportsCustomRecipient && _recipientOverride != null)
-        ? _recipientOverride!
-        : defaultRecipient;
+    final override = _recipientOverride;
+    final destination = provider.supportsCustomRecipient && override != null
+        ? override
+        : provider.common.accountAddr;
 
     showExchangeConfirmModal(
       context: context,
@@ -266,16 +320,8 @@ class _ExchangePageState extends State<ExchangePage> with StatusBarMixin {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
             child: Consumer<ExchangeState>(
-              builder: (context, exchange, _) => Column(
-                children: [
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: padding),
-                    child: _buildHeader(theme, exchange),
-                  ),
-                  Expanded(child: _buildBody(theme, l10n, padding, exchange)),
-                ],
-              ),
+              builder: (context, exchange, _) =>
+                  _buildBody(theme, l10n, padding, exchange),
             ),
           ),
         ),
@@ -301,8 +347,6 @@ class _ExchangePageState extends State<ExchangePage> with StatusBarMixin {
     }
     if (from == null) return const Center(child: CircularProgressIndicator());
 
-    final canSwap = _canSwap(state);
-
     return ScrollConfiguration(
       behavior: const ScrollBehavior().copyWith(
         physics: const BouncingScrollPhysics(),
@@ -315,17 +359,9 @@ class _ExchangePageState extends State<ExchangePage> with StatusBarMixin {
           child: Column(
             children: [
               const SizedBox(height: 16),
-              _buildPayCard(from, state),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const SizedBox(width: 40),
-                    _buildDirectionIcon(theme, from, state),
-                  ],
-                ),
-              ),
+              _buildSectionLabel(theme, l10n.exchangePagePay),
+              _buildPayCard(theme, from),
+              _buildFlipRow(theme, l10n, state),
               if (to == null)
                 _buildEmptyGetCard(theme, l10n, state)
               else
@@ -336,22 +372,7 @@ class _ExchangePageState extends State<ExchangePage> with StatusBarMixin {
                 onBackspace: _onBackspace,
                 onDotPress: () => _onKeyPress('.'),
               ),
-              RoundedLoadingButton(
-                controller: _btnController,
-                onPressed: canSwap ? () => _handleSwap(state) : null,
-                color: canSwap
-                    ? theme.primaryPurple
-                    : theme.textSecondary.withValues(alpha: 0.18),
-                valueColor: theme.buttonText,
-                child: Text(
-                  l10n.exchangePageConfirm,
-                  style: theme.titleMedium.copyWith(
-                    color: canSwap
-                        ? theme.buttonText
-                        : theme.textSecondary.withValues(alpha: 0.5),
-                  ),
-                ),
-              ),
+              _buildSwapButton(theme, l10n, state),
               const SizedBox(height: 16),
             ],
           ),
@@ -360,95 +381,110 @@ class _ExchangePageState extends State<ExchangePage> with StatusBarMixin {
     );
   }
 
-  Widget _buildHeader(AppTheme theme, ExchangeState state) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const Spacer(),
-          GestureDetector(
-            onTap: () {
-              final provider = state.selectedProvider;
-              if (provider == null) return;
-              showSwapSettingsModal(
-                context: context,
-                activeProvider: provider,
-                exchangeState: state,
-              );
-            },
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: AppIconView(
-                icon: AppIcon.settings,
-                size: 22,
-                color: theme.textSecondary,
-              ),
-            ),
+  Widget _buildSectionLabel(AppTheme theme, String label) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 4, bottom: 6),
+        child: Text(
+          label,
+          style: theme.bodyText2.copyWith(
+            color: theme.textSecondary,
+            fontWeight: FontWeight.w600,
           ),
+        ),
+      ),
+    );
+  }
+
+  BoxDecoration _cardDecoration(AppTheme theme) => BoxDecoration(
+        color: theme.cardBackground,
+        borderRadius: BorderRadius.circular(16),
+      );
+
+  /// Matches the outline [TokenAmountCard] draws for itself on the pay side.
+  BoxDecoration _getCardDecoration(AppTheme theme) =>
+      _cardDecoration(theme).copyWith(
+        border: Border.all(
+          color: theme.textSecondary.withValues(alpha: 0.2),
+          width: 1.5,
+        ),
+      );
+
+  Widget _buildPayCard(AppTheme theme, ExchangeAsset from) {
+    return DecoratedBox(
+      decoration: _cardDecoration(theme),
+      child: TokenAmountCard(
+        amount: _amount,
+        token: from.token,
+        balance: _balanceOf(from),
+        onAmountChanged: (v) {
+          setState(() {
+            _amount = v;
+            _hasDecimalPoint = v.contains('.');
+          });
+          _scheduleQuote();
+        },
+        onTokenTap: () => showExchangeTokenSelectModal(
+          context: context,
+          assetSelector: (s) => s.payAssets,
+          onSelected: _selectFrom,
+        ),
+      ),
+    );
+  }
+
+  /// "You get" label on the left with the flip button centered between the two cards.
+  Widget _buildFlipRow(
+      AppTheme theme, AppLocalizations l10n, ExchangeState state) {
+    return SizedBox(
+      height: 52,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Align(
+            alignment: Alignment.bottomLeft,
+            child: _buildSectionLabel(theme, l10n.exchangePageGet),
+          ),
+          _buildDirectionIcon(theme, state),
         ],
       ),
     );
   }
 
-  Widget _buildPayCard(ExchangeAsset from, ExchangeState state) {
-    final token = from.token;
-    final balance =
-        BigInt.tryParse(token.balances[_appState.accountBalanceKey] ?? '') ??
-            BigInt.zero;
-    return TokenAmountCard(
-      amount: _amount,
-      token: token,
-      balance: balance,
-      onAmountChanged: (v) {
-        setState(() {
-          _amount = v;
-          _hasDecimalPoint = v.contains('.');
-        });
-        _scheduleQuote();
-      },
-      onTokenTap: () => showExchangeTokenSelectModal(
-        context: context,
-        assetSelector: (s) => s.payAssets,
-        onSelected: _selectFrom,
-      ),
-    );
-  }
-
-  Widget _buildDirectionIcon(
-      AppTheme theme, ExchangeAsset? from, ExchangeState state) {
-    final canFlip = from != null && state.toAsset != null;
+  Widget _buildDirectionIcon(AppTheme theme, ExchangeState state) {
+    final canFlip = state.fromAsset != null && state.toAsset != null;
     return GestureDetector(
-      onTap: canFlip
-          ? () {
-              final to = state.toAsset;
-              if (to == null) return;
-              setState(() {
-                _amount = '0';
-                _hasDecimalPoint = false;
-                _recipientOverride = null;
-              });
-              state.selectFrom(to);
-              state.selectTo(from);
-            }
-          : null,
-      child: Container(
+      onTap: canFlip ? () => _flip(state) : null,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: theme.cardBackground,
+          color: canFlip
+              ? theme.primaryPurple.withValues(alpha: 0.12)
+              : theme.cardBackground,
           shape: BoxShape.circle,
           border: Border.all(
-              color: theme.textSecondary.withValues(alpha: 0.2), width: 1.5),
+            color: canFlip
+                ? theme.primaryPurple.withValues(alpha: 0.35)
+                : theme.textSecondary.withValues(alpha: 0.15),
+            width: 1.5,
+          ),
         ),
         child: Center(
-          child: AppIconView(
-            icon: AppIcon.swap,
-            size: 20,
-            color: canFlip
-                ? theme.primaryPurple
-                : theme.textSecondary.withValues(alpha: 0.4),
+          child: AnimatedRotation(
+            turns: _flipTurns,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutBack,
+            child: AppIconView(
+              icon: AppIcon.swap,
+              size: 20,
+              color: canFlip
+                  ? theme.primaryPurple
+                  : theme.textSecondary.withValues(alpha: 0.4),
+            ),
           ),
         ),
       ),
@@ -477,12 +513,8 @@ class _ExchangePageState extends State<ExchangePage> with StatusBarMixin {
       AppTheme theme, AppLocalizations l10n, ExchangeState state) {
     final outs = state.outAssets;
     return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        border: Border.all(
-            color: theme.textSecondary.withValues(alpha: 0.15), width: 1.5),
-        borderRadius: BorderRadius.circular(16),
-      ),
+      padding: const EdgeInsets.all(16),
+      decoration: _getCardDecoration(theme),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
@@ -508,8 +540,6 @@ class _ExchangePageState extends State<ExchangePage> with StatusBarMixin {
     final selectedProvider = state.selectedProvider;
     final quote = selectedProvider?.quote;
     final from = state.fromAsset;
-    final rateLabel =
-        quote == null || from == null ? null : _rateLabel(from, to, quote);
     final recipient = to.providers.firstOrNull?.common.accountAddr ?? '';
     // Use the selected (best-quoted) provider when available. If no quote has
     // landed yet, fall back to inspecting every provider that can route this
@@ -542,79 +572,181 @@ class _ExchangePageState extends State<ExchangePage> with StatusBarMixin {
       fontSize: 28,
     );
     return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        border: Border.all(
-            color: theme.textSecondary.withValues(alpha: 0.15), width: 1.5),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildRecipientButton(
-            theme,
-            l10n,
-            effectiveRecipient,
-            to,
-            allowCustomRecipient,
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 36,
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 250),
-                    layoutBuilder: (currentChild, previousChildren) => Stack(
-                      alignment: AlignmentDirectional.centerStart,
-                      children: [
-                        ...previousChildren,
-                        if (currentChild != null) currentChild
-                      ],
-                    ),
-                    child: Align(
-                      key: showAmountShimmer
-                          ? const ValueKey<String>('get-shimmer')
-                          : const ValueKey<String>('get-value'),
-                      alignment: Alignment.centerLeft,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
+      padding: const EdgeInsets.all(16),
+      decoration: _getCardDecoration(theme),
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        alignment: Alignment.topCenter,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildRecipientButton(
+              theme,
+              l10n,
+              effectiveRecipient,
+              to,
+              allowCustomRecipient,
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 36,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 250),
+                      layoutBuilder: (currentChild, previousChildren) => Stack(
+                        alignment: AlignmentDirectional.centerStart,
+                        children: [
+                          ...previousChildren,
+                          if (currentChild != null) currentChild
+                        ],
+                      ),
+                      child: Align(
+                        key: showAmountShimmer
+                            ? const ValueKey<String>('get-shimmer')
+                            : const ValueKey<String>('get-value'),
                         alignment: Alignment.centerLeft,
-                        child: showAmountShimmer
-                            ? ShimmerText(
-                                text: outAmount,
-                                style: outAmountStyle,
-                                baseColor:
-                                    theme.textPrimary.withValues(alpha: 0.35),
-                                highlightColor: theme.textPrimary,
-                              )
-                            : Text(
-                                outAmount,
-                                style: outAmountStyle,
-                              ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: showAmountShimmer
+                              ? ShimmerText(
+                                  text: outAmount,
+                                  style: outAmountStyle,
+                                  baseColor:
+                                      theme.textPrimary.withValues(alpha: 0.35),
+                                  highlightColor: theme.textPrimary,
+                                )
+                              : Text(
+                                  outAmount,
+                                  style: outAmountStyle,
+                                ),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              _buildTokenSelector(
-                theme,
-                token,
-                () => showExchangeTokenSelectModal(
-                  context: context,
-                  assetSelector: (s) => s.outAssets,
-                  onSelected: _selectTo,
+                _buildTokenSelector(
+                  theme,
+                  token,
+                  () => showExchangeTokenSelectModal(
+                    context: context,
+                    assetSelector: (s) => s.outAssets,
+                    onSelected: _selectTo,
+                  ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            _buildQuoteInfo(theme, l10n, state, to),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Rate + route/slippage once quoted; otherwise a plain-language status line.
+  Widget _buildQuoteInfo(AppTheme theme, AppLocalizations l10n,
+      ExchangeState state, ExchangeAsset to) {
+    final provider = state.selectedProvider;
+    final quote = provider?.quote;
+    final from = state.fromAsset;
+    final secondary = theme.bodyText2.copyWith(color: theme.textSecondary);
+    if (provider == null || quote == null || from == null) {
+      final (text, color) = switch (state.quoteStatus) {
+        QuoteStatus.loading => (
+            l10n.exchangePageFindingRoute,
+            theme.textSecondary
+          ),
+        QuoteStatus.noRoute => (l10n.exchangePageNoRoute, theme.warning),
+        QuoteStatus.idle || QuoteStatus.ready => ('-', theme.textSecondary),
+      };
+      return Text(text, style: secondary.copyWith(color: color));
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(_rateLabel(from, to, quote) ?? '-', style: secondary),
+        const SizedBox(height: 6),
+        _buildRouteRow(theme, l10n, state, provider),
+      ],
+    );
+  }
+
+  /// "via Uniswap · 0.5% slippage" — tap opens swap settings.
+  Widget _buildRouteRow(AppTheme theme, AppLocalizations l10n,
+      ExchangeState state, ExchangeProvider provider) {
+    final slippage = (state.slippageFor(provider) / 100).toStringAsFixed(1);
+    return GestureDetector(
+      onTap: () => _openSettings(state),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: theme.primaryPurple.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SvgPicture.asset(
+              provider.common.iconAsset,
+              width: 16,
+              height: 16,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                '${l10n.exchangePageRouteVia(provider.common.displayName)}'
+                ' · ${l10n.exchangePageSlippage(slippage)}',
+                style: theme.bodyText2.copyWith(color: theme.textPrimary),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            rateLabel ?? '-',
-            style: theme.bodyText2.copyWith(color: theme.textSecondary),
-          ),
-        ],
+            ),
+            const SizedBox(width: 6),
+            AppIconView(
+              icon: AppIcon.settings,
+              size: 14,
+              color: theme.primaryPurple,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSwapButton(
+      AppTheme theme, AppLocalizations l10n, ExchangeState state) {
+    final blocker = _swapBlocker(state);
+    final ready = blocker == null;
+    final isProblem = blocker == _SwapBlocker.insufficientBalance ||
+        blocker == _SwapBlocker.noRoute;
+    final label = _swapLabel(l10n, blocker, state.fromAsset);
+    final textColor = ready
+        ? theme.buttonText
+        : isProblem
+            ? theme.warning
+            : theme.textSecondary.withValues(alpha: 0.7);
+    return RoundedLoadingButton(
+      controller: _btnController,
+      onPressed: ready ? () => _handleSwap(state) : null,
+      color: ready
+          ? theme.primaryPurple
+          : isProblem
+              ? theme.warning.withValues(alpha: 0.15)
+              : theme.textSecondary.withValues(alpha: 0.18),
+      valueColor: theme.buttonText,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        child: Text(
+          label,
+          key: ValueKey<String>(label),
+          style: theme.titleMedium.copyWith(color: textColor),
+        ),
       ),
     );
   }
@@ -632,8 +764,7 @@ class _ExchangePageState extends State<ExchangePage> with StatusBarMixin {
         color: enabled
             ? theme.primaryPurple
             : theme.textSecondary.withValues(alpha: 0.7),
-        decoration:
-            enabled ? TextDecoration.underline : TextDecoration.none,
+        decoration: enabled ? TextDecoration.underline : TextDecoration.none,
         decorationColor: theme.primaryPurple,
       ),
     );
@@ -661,31 +792,31 @@ class _ExchangePageState extends State<ExchangePage> with StatusBarMixin {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          border: Border.all(
-            color: theme.textPrimary.withValues(alpha: enabled ? 0.2 : 0.08),
-            width: 1.5,
-          ),
+          color: enabled
+              ? theme.primaryPurple
+              : theme.textSecondary.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              l10n.tokenSelectModalSelectButton,
+              l10n.exchangePageSelectToken,
               style: theme.bodyText1.copyWith(
                 color: enabled
-                    ? theme.textPrimary
+                    ? theme.buttonText
                     : theme.textSecondary.withValues(alpha: 0.5),
+                fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 6),
             AppIconView(
               icon: AppIcon.arrowDown,
               size: 12,
               color: enabled
-                  ? theme.textSecondary
+                  ? theme.buttonText
                   : theme.textSecondary.withValues(alpha: 0.5),
             ),
           ],

@@ -6059,14 +6059,6 @@ impl SseDecode
     }
 }
 
-impl SseDecode for std::collections::HashSet<crate::models::exchange::ExchangeProvider> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut inner = <Vec<crate::models::exchange::ExchangeProvider>>::sse_decode(deserializer);
-        return inner.into_iter().collect();
-    }
-}
-
 impl SseDecode for StreamSink<String, flutter_rust_bridge::for_generated::SseCodec> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -6527,9 +6519,8 @@ impl SseDecode for crate::models::exchange::ExchangeAsset {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_token = <crate::models::ftoken::FTokenInfo>::sse_decode(deserializer);
-        let mut var_providers = <std::collections::HashSet<
-            crate::models::exchange::ExchangeProvider,
-        >>::sse_decode(deserializer);
+        let mut var_providers =
+            <Vec<crate::models::exchange::ExchangeProvider>>::sse_decode(deserializer);
         let mut var_halted = <bool>::sse_decode(deserializer);
         return crate::models::exchange::ExchangeAsset {
             token: var_token,
@@ -11654,16 +11645,6 @@ impl SseEncode
     }
 }
 
-impl SseEncode for std::collections::HashSet<crate::models::exchange::ExchangeProvider> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <Vec<crate::models::exchange::ExchangeProvider>>::sse_encode(
-            self.into_iter().collect(),
-            serializer,
-        );
-    }
-}
-
 impl SseEncode for StreamSink<String, flutter_rust_bridge::for_generated::SseCodec> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -11964,10 +11945,7 @@ impl SseEncode for crate::models::exchange::ExchangeAsset {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <crate::models::ftoken::FTokenInfo>::sse_encode(self.token, serializer);
-        <std::collections::HashSet<crate::models::exchange::ExchangeProvider>>::sse_encode(
-            self.providers,
-            serializer,
-        );
+        <Vec<crate::models::exchange::ExchangeProvider>>::sse_encode(self.providers, serializer);
         <bool>::sse_encode(self.halted, serializer);
     }
 }
