@@ -13,9 +13,10 @@ use zilpay::serde_json::Value;
 use zilpay::{
     background::{bg_provider::ProvidersManagement, bg_wallet::WalletManagement},
     crypto::slip44::{BITCOIN, ETHEREUM, SOLANA, TRON, ZILLIQA},
+    errors::wallet::WalletErrors,
     settings::wallet_settings::TokenQuotesAPIOptions,
     token::ft::FToken,
-    wallet::{wallet_storage::StorageOperations, wallet_token::TokenManagement},
+    wallet::{wallet_storage::StorageOperations, wallet_token::TokenManagement, Wallet},
 };
 
 const UNISWAP_API_URL: &str =
@@ -341,8 +342,7 @@ pub async fn update_rates(wallet_index: usize) -> Result<(), String> {
             }
 
             if non_native_indices.is_empty() {
-                wallet
-                    .save_ftokens(&ftokens)
+                merge_rates(wallet, &ftokens, chain_hash)
                     .map_err(|e| ServiceError::WalletError(wallet_index, e))?;
                 return Ok(());
             }
@@ -376,8 +376,7 @@ pub async fn update_rates(wallet_index: usize) -> Result<(), String> {
                 }
             }
 
-            wallet
-                .save_ftokens(&ftokens)
+            merge_rates(wallet, &ftokens, chain_hash)
                 .map_err(|e| ServiceError::WalletError(wallet_index, e))?;
 
             Ok(())
@@ -398,8 +397,7 @@ pub async fn update_rates(wallet_index: usize) -> Result<(), String> {
                 }
             }
 
-            wallet
-                .save_ftokens(&ftokens)
+            merge_rates(wallet, &ftokens, chain_hash)
                 .map_err(|e| ServiceError::WalletError(wallet_index, e))?;
 
             Ok(())
@@ -409,8 +407,7 @@ pub async fn update_rates(wallet_index: usize) -> Result<(), String> {
                 ftokens[idx].rate = convert_rate;
             }
 
-            wallet
-                .save_ftokens(&ftokens)
+            merge_rates(wallet, &ftokens, chain_hash)
                 .map_err(|e| ServiceError::WalletError(wallet_index, e))?;
 
             Ok(())
@@ -458,8 +455,7 @@ pub async fn update_rates(wallet_index: usize) -> Result<(), String> {
                 }
             }
 
-            wallet
-                .save_ftokens(&ftokens)
+            merge_rates(wallet, &ftokens, chain_hash)
                 .map_err(|e| ServiceError::WalletError(wallet_index, e))?;
 
             Ok(())
@@ -478,8 +474,7 @@ pub async fn update_rates(wallet_index: usize) -> Result<(), String> {
                 .collect();
 
             if non_native_indices.is_empty() {
-                wallet
-                    .save_ftokens(&ftokens)
+                merge_rates(wallet, &ftokens, chain_hash)
                     .map_err(|e| ServiceError::WalletError(wallet_index, e))?;
                 return Ok(());
             }
@@ -520,14 +515,31 @@ pub async fn update_rates(wallet_index: usize) -> Result<(), String> {
                 }
             }
 
-            wallet
-                .save_ftokens(&ftokens)
+            merge_rates(wallet, &ftokens, chain_hash)
                 .map_err(|e| ServiceError::WalletError(wallet_index, e))?;
 
             Ok(())
         }
         _ => Ok(()),
     }
+}
+
+/// The quote fetch in [update_rates] awaits for seconds while a balance sync
+/// may save. Write back only the `rate` field into a fresh read so those
+/// newer balances are not reverted by the pre-await snapshot.
+fn merge_rates(wallet: &Wallet, rated: &[FToken], chain_hash: u64) -> Result<(), WalletErrors> {
+    wallet.update_ftokens(|fresh| {
+        for token in fresh.iter_mut().filter(|t| t.chain_hash == chain_hash) {
+            if let Some(r) = rated
+                .iter()
+                .find(|r| r.addr == token.addr && r.chain_hash == chain_hash)
+            {
+                token.rate = r.rate;
+            }
+        }
+
+        Ok(())
+    })
 }
 
 pub async fn fetch_token_meta(addr: String, wallet_index: usize) -> Result<FTokenInfo, String> {
